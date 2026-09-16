@@ -17,3 +17,4 @@ setup-backup/
 .claude/scheduled_tasks.lock
 reports/*
 !reports/.gitkeep
+dependency-reduced-pom.xml
