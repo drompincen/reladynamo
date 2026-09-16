@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>OutreachSequence</ClassName>
+        <DefaultTable>OUTREACH_SEQUENCE</DefaultTable>
+        <AsOfAttribute name="businessDate" fromColumnName="BUSINESS_DATE_FROM" toColumnName="BUSINESS_DATE_THRU"
+                       toIsInclusive="false" isProcessingDate="false"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="sequenceId" javaType="long" columnName="SEQUENCE_ID" primaryKey="true"/>
+        <Attribute name="name" javaType="String" columnName="NAME" maxLength="128"/>
+        <Attribute name="isActive" javaType="boolean" columnName="IS_ACTIVE"/>
+        <Attribute name="ownerRepId" javaType="long" columnName="OWNER_REP_ID"/>
+        <Relationship name="ownerRep" relatedObject="SalesRep" cardinality="many-to-one" reverseRelationshipName="ownedSequences">SalesRep.repId = this.ownerRepId</Relationship>
+</MithraObject>

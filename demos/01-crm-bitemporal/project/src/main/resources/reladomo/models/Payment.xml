@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>Payment</ClassName>
+        <DefaultTable>PAYMENT</DefaultTable>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="paymentId" javaType="long" columnName="PAYMENT_ID" primaryKey="true"/>
+        <Attribute name="invoiceId" javaType="long" columnName="INVOICE_ID"/>
+        <Attribute name="amount" javaType="BigDecimal" columnName="AMOUNT" precision="18" scale="2"/>
+        <Attribute name="paidTime" javaType="Timestamp" columnName="PAID_TIME"/>
+        <Attribute name="method" javaType="String" columnName="METHOD" maxLength="32"/>
+        <Attribute name="referenceCode" javaType="String" columnName="REFERENCE_CODE" maxLength="64"/>
+        <Relationship name="invoice" relatedObject="Invoice" cardinality="many-to-one" reverseRelationshipName="payments">Invoice.invoiceId = this.invoiceId</Relationship>
+</MithraObject>

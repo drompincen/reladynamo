@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>SupportCase</ClassName>
+        <DefaultTable>SUPPORT_CASE</DefaultTable>
+        <AsOfAttribute name="businessDate" fromColumnName="BUSINESS_DATE_FROM" toColumnName="BUSINESS_DATE_THRU"
+                       toIsInclusive="false" isProcessingDate="false"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="caseId" javaType="long" columnName="CASE_ID" primaryKey="true"/>
+        <Attribute name="customerId" javaType="long" columnName="CUSTOMER_ID"/>
+        <Attribute name="contactId" javaType="long" columnName="CONTACT_ID"/>
+        <Attribute name="subject" javaType="String" columnName="SUBJECT" maxLength="256"/>
+        <Attribute name="status" javaType="String" columnName="STATUS" maxLength="32"/>
+        <Attribute name="priority" javaType="String" columnName="PRIORITY" maxLength="16"/>
+        <Attribute name="openedTime" javaType="Timestamp" columnName="OPENED_TIME"/>
+        <Attribute name="closedTime" javaType="Timestamp" columnName="CLOSED_TIME" nullable="true"/>
+        <Attribute name="assignedRepId" javaType="long" columnName="ASSIGNED_REP_ID"/>
+        <Relationship name="customer" relatedObject="Customer" cardinality="many-to-one" reverseRelationshipName="supportCases">Customer.customerId = this.customerId</Relationship>
+        <Relationship name="contact" relatedObject="Contact" cardinality="many-to-one" reverseRelationshipName="supportCases">Contact.contactId = this.contactId</Relationship>
+        <Relationship name="assignedRep" relatedObject="SalesRep" cardinality="many-to-one" reverseRelationshipName="assignedCases">SalesRep.repId = this.assignedRepId</Relationship>
+</MithraObject>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>SalesRep</ClassName>
+        <DefaultTable>SALES_REP</DefaultTable>
+        <AsOfAttribute name="businessDate" fromColumnName="BUSINESS_DATE_FROM" toColumnName="BUSINESS_DATE_THRU"
+                       toIsInclusive="false" isProcessingDate="false"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="repId" javaType="long" columnName="REP_ID" primaryKey="true"/>
+        <Attribute name="firstName" javaType="String" columnName="FIRST_NAME" maxLength="64"/>
+        <Attribute name="lastName" javaType="String" columnName="LAST_NAME" maxLength="64"/>
+        <Attribute name="email" javaType="String" columnName="EMAIL" maxLength="256"/>
+        <Attribute name="teamId" javaType="long" columnName="TEAM_ID"/>
+        <Attribute name="managerRepId" javaType="long" columnName="MANAGER_REP_ID" nullable="true"/>
+        <Attribute name="hireDate" javaType="Timestamp" columnName="HIRE_DATE"/>
+        <Attribute name="terminationDate" javaType="Timestamp" columnName="TERMINATION_DATE" nullable="true"/>
+        <Attribute name="quotaAmount" javaType="BigDecimal" columnName="QUOTA_AMOUNT" precision="18" scale="2"/>
+        <Relationship name="team" relatedObject="Team" cardinality="many-to-one" reverseRelationshipName="members">Team.teamId = this.teamId</Relationship>
+        <Relationship name="manager" relatedObject="SalesRep" cardinality="many-to-one" reverseRelationshipName="directReports">SalesRep.repId = this.managerRepId</Relationship>
+</MithraObject>

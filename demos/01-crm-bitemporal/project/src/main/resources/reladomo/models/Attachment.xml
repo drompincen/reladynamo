@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>Attachment</ClassName>
+        <DefaultTable>ATTACHMENT</DefaultTable>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="attachmentId" javaType="long" columnName="ATTACHMENT_ID" primaryKey="true"/>
+        <Attribute name="entityType" javaType="String" columnName="ENTITY_TYPE" maxLength="64"/>
+        <Attribute name="entityId" javaType="long" columnName="ENTITY_ID"/>
+        <Attribute name="fileName" javaType="String" columnName="FILE_NAME" maxLength="256"/>
+        <Attribute name="mimeType" javaType="String" columnName="MIME_TYPE" maxLength="128"/>
+        <Attribute name="sizeBytes" javaType="long" columnName="SIZE_BYTES"/>
+        <Attribute name="storageRef" javaType="String" columnName="STORAGE_REF" maxLength="256"/>
+</MithraObject>

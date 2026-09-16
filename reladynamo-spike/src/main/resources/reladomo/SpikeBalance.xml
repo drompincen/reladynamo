@@ -1,0 +1,25 @@
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <PackageName>io.reladynamo.spike.domain</PackageName>
+    <ClassName>SpikeBalance</ClassName>
+    <DefaultTable>SPIKE_BALANCE</DefaultTable>
+
+    <AsOfAttribute name="businessDate"
+                   fromColumnName="FROM_Z" toColumnName="THRU_Z"
+                   toIsInclusive="false"
+                   isProcessingDate="false"
+                   infinityDate="[io.reladynamo.spike.SpikeInfinity.INFINITY]"
+                   futureExpiringRowsExist="true"/>
+
+    <AsOfAttribute name="processingDate"
+                   fromColumnName="IN_Z" toColumnName="OUT_Z"
+                   toIsInclusive="false"
+                   isProcessingDate="true"
+                   infinityDate="[io.reladynamo.spike.SpikeInfinity.INFINITY]"
+                   defaultIfNotSpecified="[io.reladynamo.spike.SpikeInfinity.INFINITY]"/>
+
+    <Attribute name="balanceId"  javaType="int"    columnName="BALANCE_ID" primaryKey="true"/>
+    <Attribute name="accountId"  javaType="int"    columnName="ACCOUNT_ID" primaryKey="true"/>
+    <Attribute name="quantity"   javaType="double" columnName="QUANTITY"/>
+    <Attribute name="label"      javaType="String" columnName="LABEL" maxLength="64" nullable="true"/>
+</MithraObject>

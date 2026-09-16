@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional" disableForeignKeys="true"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="mithraobject.xsd">
+    <PackageName>com.reladynamo.demo.petstore.domain</PackageName>
+    <ClassName>ProductCategory</ClassName>
+    <DefaultTable>PRODUCT_CATEGORY</DefaultTable>
+    <Attribute name="categoryId" javaType="long" columnName="CATEGORY_ID" primaryKey="true" nullable="false"/>
+    <Attribute name="name" javaType="String" columnName="NAME" maxLength="80"/>
+    <Attribute name="parentCategoryId" javaType="long" columnName="PARENT_CATEGORY_ID" nullable="true"/>
+    <Relationship name="parent" relatedObject="ProductCategory" cardinality="many-to-one" reverseRelationshipName="children" foreignKey="false">ProductCategory.categoryId = this.parentCategoryId</Relationship>
+
+</MithraObject>

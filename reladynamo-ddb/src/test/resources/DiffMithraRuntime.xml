@@ -1,0 +1,16 @@
+<MithraRuntime>
+    <ConnectionManager className="io.reladynamo.ddb.differential.DiffH2ConnectionManager">
+        <MithraObjectConfiguration cacheType="partial"
+                                   className="io.reladynamo.ddb.differential.domain.DiffBalance"/>
+        <MithraObjectConfiguration cacheType="partial"
+                                   className="io.reladynamo.ddb.differential.domain.DiffAudit"/>
+        <MithraObjectConfiguration cacheType="partial"
+                                   className="io.reladynamo.ddb.differential.domain.DiffPosition"/>
+        <MithraObjectConfiguration cacheType="partial"
+                                   className="io.reladynamo.ddb.differential.domain.DiffEntry"/>
+        <MithraObjectConfiguration cacheType="partial"
+                                   className="io.reladynamo.ddb.differential.domain.DiffNumeric"/>
+        <MithraObjectConfiguration cacheType="partial"
+                                   className="io.reladynamo.ddb.differential.domain.DiffFinderValue"/>
+    </ConnectionManager>
+</MithraRuntime>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional" disableForeignKeys="true"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="mithraobject.xsd">
+    <PackageName>com.reladynamo.demo.petstore.domain</PackageName>
+    <ClassName>Adoption</ClassName>
+        <DatedTransactionalTemporalDirector>com.gs.fw.common.mithra.behavior.AuditOnlyTemporalDirector</DatedTransactionalTemporalDirector>
+    <DefaultTable>ADOPTION</DefaultTable>
+    <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                   toIsInclusive="false" isProcessingDate="true"
+                   infinityDate="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"
+                   defaultIfNotSpecified="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"
+                   timezoneConversion="convert-to-utc"/>
+    <Attribute name="adoptionId" javaType="long" columnName="ADOPTION_ID" primaryKey="true" nullable="false"/>
+    <Attribute name="petId" javaType="long" columnName="PET_ID"/>
+    <Attribute name="ownerId" javaType="long" columnName="OWNER_ID"/>
+    <Attribute name="adoptedTime" javaType="Timestamp" columnName="ADOPTED_TIME"/>
+    <Attribute name="feeAmount" javaType="BigDecimal" columnName="FEE_AMOUNT" precision="18" scale="2"/>
+    <Attribute name="returnedTime" javaType="Timestamp" columnName="RETURNED_TIME" nullable="true"/>
+
+</MithraObject>

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.reladynamo</groupId>
+    <artifactId>reladynamo-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>reladynamo-ddb</artifactId>
+  <name>Reladynamo :: DynamoDB</name>
+  <dependencies>
+    <dependency>
+      <groupId>io.reladynamo</groupId>
+      <artifactId>reladynamo-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>dynamodb</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Property-based tests for codec round-trip fidelity: the numeric and temporal edge cases
+         that matter here (subnormals, negative zero, scale preservation, pre-epoch) are found by
+         generation, not by hand-picked examples. -->
+    <dependency>
+      <groupId>net.jqwik</groupId>
+      <artifactId>jqwik</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.reladynamo</groupId>
+      <artifactId>reladynamo-test-kit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Declared here rather than inherited: test-kit holds it `provided` so it cannot leak to
+         downstream consumers. Test scope only — see THIRD-PARTY-NOTICES.md. -->
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>DynamoDBLocal</artifactId>
+      <version>${dynamodblocal.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- H2 is the reference side of the differential suite. -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- A real bitemporal object for the differential suite: the reference side must be genuine
+           Reladomo-over-H2, not a hand-rolled imitation, or the comparison proves nothing. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <id>reladomogen-diff-fixture</id>
+            <phase>generate-test-sources</phase>
+            <goals><goal>run</goal></goals>
+            <configuration>
+              <target>
+                <taskdef name="gen" classname="com.gs.fw.common.mithra.generator.MithraGenerator"
+                         classpathref="maven.plugin.classpath"/>
+                <gen xml="${project.basedir}/src/test/resources/reladomo/models/ReladomoClassList.xml"
+                     generatedDir="${project.build.directory}/generated-test-sources/reladomo"
+                     nonGeneratedDir="${project.basedir}/src/test/java"/>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>com.goldmansachs.reladomo</groupId>
+            <artifactId>reladomogen</artifactId>
+            <version>${reladomo.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.5.0</version>
+        <executions>
+          <execution>
+            <id>add-diff-test-sources</id>
+            <phase>generate-test-sources</phase>
+            <goals><goal>add-test-source</goal></goals>
+            <configuration>
+              <sources><source>${project.build.directory}/generated-test-sources/reladomo</source></sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.6.1</version>
+        <executions>
+          <execution>
+            <id>copy-sqlite4java-natives</id>
+            <phase>process-test-resources</phase>
+            <goals><goal>copy-dependencies</goal></goals>
+            <configuration>
+              <includeGroupIds>com.almworks.sqlite4java</includeGroupIds>
+              <outputDirectory>${project.build.directory}/native-libs</outputDirectory>
+              <stripVersion>true</stripVersion>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <sqlite4java.library.path>${project.build.directory}/native-libs</sqlite4java.library.path>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

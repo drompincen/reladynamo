@@ -1,0 +1,32 @@
+$ mvn -q clean test
+(cwd: crm-bitemporal-demo)
+
+Warning: boolean variable isPublic should not have prefix "is" in CaseComment.xml
+Please consider changing the variable name to "public"
+Warning: boolean variable isPrimary should not have prefix "is" in Contact.xml
+Please consider changing the variable name to "primary"
+Warning: boolean variable isVerified should not have prefix "is" in ContactEmail.xml
+Please consider changing the variable name to "verified"
+Warning: boolean variable isVerified should not have prefix "is" in ContactPhone.xml
+Please consider changing the variable name to "verified"
+Warning: boolean variable isActive should not have prefix "is" in OutreachSequence.xml
+Please consider changing the variable name to "active"
+Warning: boolean variable isClosed should not have prefix "is" in PipelineStage.xml
+Please consider changing the variable name to "closed"
+Warning: boolean variable isWon should not have prefix "is" in PipelineStage.xml
+Please consider changing the variable name to "won"
+Warning: boolean variable isStandard should not have prefix "is" in PriceBook.xml
+Please consider changing the variable name to "standard"
+Warning: boolean variable isActive should not have prefix "is" in Product.xml
+Please consider changing the variable name to "active"
+Warning: boolean variable isPrimary should not have prefix "is" in TerritoryAssignment.xml
+Please consider changing the variable name to "primary"
+writing log to src.main.resources.reladomo.models.ReladomoClassList.xml.log
+
+Exit code: 0
+
+# target/surefire-reports/com.reladynamo.demo.crm.RequiredDemonstrationsTest.txt
+-------------------------------------------------------------------------------
+Test set: com.reladynamo.demo.crm.RequiredDemonstrationsTest
+-------------------------------------------------------------------------------
+Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 22.01 s -- in com.reladynamo.demo.crm.RequiredDemonstrationsTest

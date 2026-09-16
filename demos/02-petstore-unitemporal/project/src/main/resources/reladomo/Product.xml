@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional" disableForeignKeys="true"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="mithraobject.xsd">
+    <PackageName>com.reladynamo.demo.petstore.domain</PackageName>
+    <ClassName>Product</ClassName>
+        <DatedTransactionalTemporalDirector>com.gs.fw.common.mithra.behavior.GenericNonAuditedTemporalDirector</DatedTransactionalTemporalDirector>
+    <DefaultTable>PRODUCT</DefaultTable>
+    <AsOfAttribute name="businessDate" fromColumnName="FROM_Z" toColumnName="THRU_Z"
+                   toIsInclusive="false" isProcessingDate="false"
+                   infinityDate="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"
+                   timezoneConversion="convert-to-utc"/>
+    <Attribute name="productId" javaType="long" columnName="PRODUCT_ID" primaryKey="true" nullable="false"/>
+    <Attribute name="sku" javaType="String" columnName="SKU" maxLength="32"/>
+    <Attribute name="name" javaType="String" columnName="NAME" maxLength="120"/>
+    <Attribute name="categoryId" javaType="long" columnName="CATEGORY_ID"/>
+    <Attribute name="unitPrice" javaType="BigDecimal" columnName="UNIT_PRICE" precision="18" scale="2"/>
+    <Attribute name="isActive" javaType="boolean" columnName="IS_ACTIVE"/>
+    <Relationship name="category" relatedObject="ProductCategory" cardinality="many-to-one" reverseRelationshipName="products" foreignKey="false">ProductCategory.categoryId = this.categoryId</Relationship>
+    <Relationship name="stockLevels" relatedObject="StockLevel" cardinality="one-to-many" reverseRelationshipName="product" foreignKey="false">StockLevel.productId = this.productId</Relationship>
+
+</MithraObject>

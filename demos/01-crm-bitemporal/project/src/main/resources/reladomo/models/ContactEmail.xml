@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>ContactEmail</ClassName>
+        <DefaultTable>CONTACT_EMAIL</DefaultTable>
+        <AsOfAttribute name="businessDate" fromColumnName="BUSINESS_DATE_FROM" toColumnName="BUSINESS_DATE_THRU"
+                       toIsInclusive="false" isProcessingDate="false"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="emailId" javaType="long" columnName="EMAIL_ID" primaryKey="true"/>
+        <Attribute name="contactId" javaType="long" columnName="CONTACT_ID"/>
+        <Attribute name="emailAddress" javaType="String" columnName="EMAIL_ADDRESS" maxLength="256"/>
+        <Attribute name="isVerified" javaType="boolean" columnName="IS_VERIFIED"/>
+        <Attribute name="bounceCount" javaType="int" columnName="BOUNCE_COUNT"/>
+        <Relationship name="contact" relatedObject="Contact" cardinality="many-to-one" reverseRelationshipName="emails">Contact.contactId = this.contactId</Relationship>
+</MithraObject>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MithraRuntime>
+    <ConnectionManager className="com.gs.fw.common.mithra.test.ConnectionManagerForTests">
+        <Property name="resourceName" value="crm"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Customer" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Account" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Contact" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Company" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.CustomerSegmentAssignment" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.TerritoryAssignment" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.CreditRating" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.ConsentRecord" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Address" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.ContactPhone" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.ContactEmail" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Opportunity" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Quote" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.QuoteLineItem" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Contract" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Subscription" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.PriceBookEntry" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Call" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.EmailMessage" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Meeting" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.TaskItem" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Note" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.CaseComment" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Attachment" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Campaign" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.CampaignMember" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.OutreachSequence" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.OutreachStep" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.OutreachEnrollment" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.MessageTemplate" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.SupportCase" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.CaseEscalation" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.SlaPolicy" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Invoice" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.InvoiceLine" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Payment" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.SalesRep" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Team" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Territory" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Industry" cacheType="full"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.CustomerSegment" cacheType="full"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.PipelineStage" cacheType="full"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.LeadSource" cacheType="full"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Product" cacheType="full"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.PriceBook" cacheType="full"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.crm.domain.Tag" cacheType="full"/>
+    </ConnectionManager>
+</MithraRuntime>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>CustomerSegment</ClassName>
+        <DefaultTable>CUSTOMER_SEGMENT</DefaultTable>
+        <Attribute name="segmentCode" javaType="String" columnName="SEGMENT_CODE" primaryKey="true" maxLength="32"/>
+        <Attribute name="name" javaType="String" columnName="NAME" maxLength="128"/>
+        <Attribute name="description" javaType="String" columnName="DESCRIPTION" maxLength="256"/>
+</MithraObject>

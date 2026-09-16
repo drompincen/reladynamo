@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MithraRuntime>
+    <ConnectionManager className="com.reladynamo.demo.classifier.util.H2ConnectionManager">
+        <MithraObjectConfiguration className="com.reladynamo.demo.classifier.domain.Car" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.classifier.domain.ResultLabel" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.classifier.domain.ClassificationRule" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.classifier.domain.RuleCriterion" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.classifier.domain.ClassificationResult" cacheType="partial"/>
+    </ConnectionManager>
+</MithraRuntime>

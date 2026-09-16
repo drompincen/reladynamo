@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>Tag</ClassName>
+        <DefaultTable>TAG</DefaultTable>
+        <Attribute name="tagId" javaType="long" columnName="TAG_ID" primaryKey="true"/>
+        <Attribute name="name" javaType="String" columnName="NAME" maxLength="64"/>
+        <Attribute name="colorHex" javaType="String" columnName="COLOR_HEX" maxLength="7"/>
+</MithraObject>

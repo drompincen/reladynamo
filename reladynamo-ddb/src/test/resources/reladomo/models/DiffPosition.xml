@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MithraObject objectType="transactional" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <PackageName>io.reladynamo.ddb.differential.domain</PackageName>
+    <ClassName>DiffPosition</ClassName>
+    <DatedTransactionalTemporalDirector>com.gs.fw.common.mithra.behavior.GenericNonAuditedTemporalDirector</DatedTransactionalTemporalDirector>
+    <DefaultTable>DIFF_POSITION</DefaultTable>
+
+    <AsOfAttribute name="businessDate" fromColumnName="FROM_Z" toColumnName="THRU_Z"
+                   toIsInclusive="false" isProcessingDate="false" futureExpiringRowsExist="true"
+                   infinityDate="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"/>
+
+    <Attribute name="positionId" javaType="int" columnName="POSITION_ID" primaryKey="true"/>
+    <Attribute name="quantity" javaType="double" columnName="QUANTITY" nullable="false"/>
+    <Attribute name="label" javaType="String" columnName="LABEL" maxLength="64" nullable="false"/>
+    <Attribute name="note" javaType="String" columnName="NOTE" maxLength="64" nullable="true"/>
+</MithraObject>

@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>io.reladynamo</groupId>
+  <artifactId>reladynamo-parent</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <name>Reladynamo</name>
+  <description>A generic Reladomo persistence adapter for Amazon DynamoDB, preserving Reladomo's bitemporal semantics.</description>
+
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>https://opensource.org/licenses/MIT</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <modules>
+    <module>reladynamo-core</module>
+    <module>reladynamo-ddb</module>
+    <module>reladynamo-test-kit</module>
+    <module>reladynamo-spike</module>
+  </modules>
+
+  <profiles>
+    <!-- Benchmarks are slow and have no place in the gate: mvn -Pbench package, then
+         java -jar reladynamo-bench/target/benchmarks.jar -->
+    <profile>
+      <id>bench</id>
+      <modules><module>reladynamo-bench</module></modules>
+    </profile>
+  </profiles>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <!-- Java 11 is the backwards-compatibility FLOOR, not the ceiling.
+         `release` (never source/target) is the only setting that checks against the
+         Java 11 API surface and so the only one that actually prevents a leak. -->
+    <maven.compiler.release>11</maven.compiler.release>
+
+    <reladomo.version>18.1.0</reladomo.version>
+    <awssdk.version>2.25.50</awssdk.version>
+    <dynamodblocal.version>2.5.3</dynamodblocal.version>
+    <!-- h2 2.3.232 is Java 21 bytecode and cannot load on Java 11. Do not bump without
+         re-checking the class-file version against the floor. -->
+    <h2.version>2.1.210</h2.version>
+    <junit.version>5.9.3</junit.version>
+    <assertj.version>3.27.0</assertj.version>
+    <jqwik.version>1.8.5</jqwik.version>
+    <slf4j.version>2.0.9</slf4j.version>
+
+    <surefire.version>3.2.5</surefire.version>
+    <compiler.plugin.version>3.13.0</compiler.plugin.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${awssdk.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>com.goldmansachs.reladomo</groupId>
+        <artifactId>reladomo</artifactId>
+        <version>${reladomo.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.goldmansachs.reladomo</groupId>
+        <artifactId>reladomo-test-util</artifactId>
+        <version>${reladomo.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.h2database</groupId>
+        <artifactId>h2</artifactId>
+        <version>${h2.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <version>${assertj.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>net.jqwik</groupId>
+        <artifactId>jqwik</artifactId>
+        <version>${jqwik.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.reladynamo</groupId>
+        <artifactId>reladynamo-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.reladynamo</groupId>
+        <artifactId>reladynamo-ddb</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.reladynamo</groupId>
+        <artifactId>reladynamo-test-kit</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <plugins>
+      <!-- The MIT claim is only true while the non-permissive dependencies stay out of the
+           distributed classpath. DynamoDB Local is Amazon Software Licence (not OSI-approved,
+           field-of-use restricted) and H2 is MPL/EPL; both are fine for tests and neither may reach
+           compile or runtime scope. This fails the build if that ever changes. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.4.1</version>
+        <executions>
+          <execution>
+            <id>licence-scope</id>
+            <phase>validate</phase>
+            <goals><goal>enforce</goal></goals>
+            <configuration>
+              <rules>
+                <bannedDependencies>
+                  <searchTransitive>true</searchTransitive>
+                  <excludes>
+                    <exclude>com.amazonaws:DynamoDBLocal</exclude>
+                    <exclude>com.almworks.sqlite4java:*</exclude>
+                    <exclude>com.h2database:h2</exclude>
+                  </excludes>
+                  <includes>
+                    <include>com.amazonaws:DynamoDBLocal:*:*:test</include>
+                    <include>com.amazonaws:DynamoDBLocal:*:*:provided</include>
+                    <include>com.almworks.sqlite4java:*:*:*:test</include>
+                    <include>com.almworks.sqlite4java:*:*:*:provided</include>
+                    <include>com.h2database:h2:*:*:test</include>
+                    <include>com.h2database:h2:*:*:provided</include>
+                  </includes>
+                  <message>
+                    A non-permissively licensed dependency reached compile or runtime scope.
+                    DynamoDB Local (Amazon Software Licence) and H2 (MPL/EPL) are test-only.
+                    Keeping them out of the distributed classpath is what makes the MIT claim true.
+                  </message>
+                </bannedDependencies>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${compiler.plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${surefire.version}</version>
+          <configuration>
+            <!-- Surefire's default includes are **/Test*, **/*Test, **/*Tests, **/*TestCase.
+                 jqwik property classes are named *Properties and were therefore compiling but
+                 never running - five classes of silent false green. Name the patterns explicitly. -->
+            <includes>
+              <include>**/Test*.java</include>
+              <include>**/*Test.java</include>
+              <include>**/*Tests.java</include>
+              <include>**/*TestCase.java</include>
+              <include>**/*Properties.java</include>
+            </includes>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+</project>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+
+    <PackageName>io.reladynamo.core.plan.fixture</PackageName>
+    <ClassName>PlanCustomer</ClassName>
+    <DefaultTable>PLAN_CUSTOMER</DefaultTable>
+
+    <Attribute name="id" javaType="int" columnName="ID" primaryKey="true"/>
+    <Attribute name="email" javaType="String" columnName="EMAIL" maxLength="128" nullable="false"/>
+    <Attribute name="status" javaType="String" columnName="STATUS" maxLength="32" nullable="false"/>
+</MithraObject>

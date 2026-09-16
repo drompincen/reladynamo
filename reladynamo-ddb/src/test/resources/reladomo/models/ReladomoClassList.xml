@@ -1,0 +1,8 @@
+<Mithra>
+    <MithraObjectResource name="DiffBalance"/>
+    <MithraObjectResource name="DiffAudit"/>
+    <MithraObjectResource name="DiffPosition"/>
+    <MithraObjectResource name="DiffEntry"/>
+    <MithraObjectResource name="DiffNumeric"/>
+    <MithraObjectResource name="DiffFinderValue"/>
+</Mithra>

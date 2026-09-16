@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.reladynamo</groupId>
+    <artifactId>reladynamo-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>reladynamo-test-kit</artifactId>
+  <name>Reladynamo :: Test Kit</name>
+  <dependencies>
+    <dependency>
+      <groupId>io.reladynamo</groupId>
+      <artifactId>reladynamo-core</artifactId>
+    </dependency>
+    <!-- test scope: nothing in this module's main sources uses MithraTestResource, and at compile
+         scope it drags H2 (MPL/EPL) onto the distributed classpath transitively. -->
+    <dependency>
+      <groupId>com.goldmansachs.reladomo</groupId>
+      <artifactId>reladomo-test-util</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>dynamodb</artifactId>
+    </dependency>
+    <!-- provided, deliberately: DynamoDB Local ships under the Amazon Software Licence, which is
+         not OSI-approved and carries a field-of-use restriction. `provided` is non-transitive, so a
+         consumer of this test kit does not silently inherit it. Consumers that want LocalDynamoDb
+         declare it themselves, as reladynamo-ddb does. -->
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>DynamoDBLocal</artifactId>
+      <version>${dynamodblocal.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- DynamoDB Local is a JNI wrapper over SQLite. Without the native libraries unpacked and
+           sqlite4java.library.path pointed at them, it fails at startup with an UnsatisfiedLinkError
+           that reads like a classpath problem. Unpacking them here is the fix. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.6.1</version>
+        <executions>
+          <execution>
+            <id>copy-sqlite4java-natives</id>
+            <phase>process-test-resources</phase>
+            <goals><goal>copy-dependencies</goal></goals>
+            <configuration>
+              <includeGroupIds>com.almworks.sqlite4java</includeGroupIds>
+              <outputDirectory>${project.build.directory}/native-libs</outputDirectory>
+              <stripVersion>true</stripVersion>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <sqlite4java.library.path>${project.build.directory}/native-libs</sqlite4java.library.path>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

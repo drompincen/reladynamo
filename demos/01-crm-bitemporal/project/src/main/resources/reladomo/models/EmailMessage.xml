@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>EmailMessage</ClassName>
+        <DefaultTable>EMAIL_MESSAGE</DefaultTable>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="messageId" javaType="long" columnName="MESSAGE_ID" primaryKey="true"/>
+        <Attribute name="contactId" javaType="long" columnName="CONTACT_ID"/>
+        <Attribute name="repId" javaType="long" columnName="REP_ID"/>
+        <Attribute name="direction" javaType="String" columnName="DIRECTION" maxLength="16"/>
+        <Attribute name="subject" javaType="String" columnName="SUBJECT" maxLength="256"/>
+        <Attribute name="sentTime" javaType="Timestamp" columnName="SENT_TIME"/>
+        <Attribute name="openedTime" javaType="Timestamp" columnName="OPENED_TIME" nullable="true"/>
+        <Attribute name="clickedTime" javaType="Timestamp" columnName="CLICKED_TIME" nullable="true"/>
+        <Relationship name="contact" relatedObject="Contact" cardinality="many-to-one" reverseRelationshipName="emailMessages">Contact.contactId = this.contactId</Relationship>
+        <Relationship name="salesRep" relatedObject="SalesRep" cardinality="many-to-one" reverseRelationshipName="emailMessages">SalesRep.repId = this.repId</Relationship>
+</MithraObject>

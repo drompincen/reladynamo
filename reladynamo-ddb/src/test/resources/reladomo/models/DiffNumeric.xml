@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MithraObject objectType="transactional" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <PackageName>io.reladynamo.ddb.differential.domain</PackageName>
+    <ClassName>DiffNumeric</ClassName>
+    <DefaultTable>DIFF_NUMERIC</DefaultTable>
+
+    <Attribute name="id" javaType="int" columnName="ID" primaryKey="true"/>
+    <Attribute name="rate" javaType="float" columnName="RATE" nullable="false"/>
+    <Attribute name="quantity" javaType="double" columnName="QUANTITY" nullable="false"/>
+    <Attribute name="amount" javaType="BigDecimal" columnName="AMOUNT" precision="18" scale="4" nullable="false"/>
+</MithraObject>

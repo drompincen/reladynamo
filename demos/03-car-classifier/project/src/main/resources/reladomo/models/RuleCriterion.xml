@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+
+    <PackageName>com.reladynamo.demo.classifier.domain</PackageName>
+    <ClassName>RuleCriterion</ClassName>
+    <DefaultTable>RULE_CRITERION</DefaultTable>
+
+    <AsOfAttribute name="businessDate" fromColumnName="FROM_Z" toColumnName="THRU_Z"
+                   toIsInclusive="false"
+                   isProcessingDate="false"
+                   futureExpiringRowsExist="true"
+                   infinityDate="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"/>
+
+    <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                   toIsInclusive="false"
+                   isProcessingDate="true"
+                   infinityDate="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"
+                   defaultIfNotSpecified="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"/>
+
+    <Attribute name="criterionId" javaType="int" columnName="CRITERION_ID" primaryKey="true"/>
+    <Attribute name="ruleId" javaType="int" columnName="RULE_ID"/>
+    <Attribute name="attributeName" javaType="String" columnName="ATTRIBUTE_NAME" maxLength="32" nullable="false"/>
+    <Attribute name="operator" javaType="String" columnName="CRITERION_OPERATOR" maxLength="16" nullable="false"/>
+    <Attribute name="valueText" javaType="String" columnName="VALUE_TEXT" maxLength="256" nullable="true"/>
+    <Attribute name="valueNumericLow" javaType="int" columnName="VALUE_NUMERIC_LOW" nullable="true"/>
+    <Attribute name="valueNumericHigh" javaType="int" columnName="VALUE_NUMERIC_HIGH" nullable="true"/>
+</MithraObject>

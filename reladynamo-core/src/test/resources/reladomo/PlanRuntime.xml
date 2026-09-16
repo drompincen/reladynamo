@@ -1,0 +1,10 @@
+<MithraRuntime>
+    <ConnectionManager className="io.reladynamo.core.plan.H2ConnectionManager">
+        <MithraObjectConfiguration cacheType="partial"
+                                   className="io.reladynamo.core.plan.fixture.PlanRule"/>
+        <MithraObjectConfiguration cacheType="partial"
+                                   className="io.reladynamo.core.plan.fixture.PlanCustomer"/>
+        <MithraObjectConfiguration cacheType="partial"
+                                   className="io.reladynamo.core.plan.fixture.PlanPosition"/>
+    </ConnectionManager>
+</MithraRuntime>

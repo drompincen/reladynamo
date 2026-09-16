@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>Invoice</ClassName>
+        <DefaultTable>INVOICE</DefaultTable>
+        <AsOfAttribute name="businessDate" fromColumnName="BUSINESS_DATE_FROM" toColumnName="BUSINESS_DATE_THRU"
+                       toIsInclusive="false" isProcessingDate="false"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="invoiceId" javaType="long" columnName="INVOICE_ID" primaryKey="true"/>
+        <Attribute name="customerId" javaType="long" columnName="CUSTOMER_ID"/>
+        <Attribute name="contractId" javaType="long" columnName="CONTRACT_ID"/>
+        <Attribute name="invoiceNumber" javaType="String" columnName="INVOICE_NUMBER" maxLength="64"/>
+        <Attribute name="issueDate" javaType="Timestamp" columnName="ISSUE_DATE"/>
+        <Attribute name="dueDate" javaType="Timestamp" columnName="DUE_DATE"/>
+        <Attribute name="totalAmount" javaType="BigDecimal" columnName="TOTAL_AMOUNT" precision="18" scale="2"/>
+        <Attribute name="status" javaType="String" columnName="STATUS" maxLength="32"/>
+        <Relationship name="customer" relatedObject="Customer" cardinality="many-to-one" reverseRelationshipName="invoices">Customer.customerId = this.customerId</Relationship>
+        <Relationship name="contract" relatedObject="Contract" cardinality="many-to-one" reverseRelationshipName="invoices">Contract.contractId = this.contractId</Relationship>
+</MithraObject>

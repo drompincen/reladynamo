@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>Meeting</ClassName>
+        <DefaultTable>MEETING</DefaultTable>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="meetingId" javaType="long" columnName="MEETING_ID" primaryKey="true"/>
+        <Attribute name="customerId" javaType="long" columnName="CUSTOMER_ID"/>
+        <Attribute name="repId" javaType="long" columnName="REP_ID"/>
+        <Attribute name="subject" javaType="String" columnName="SUBJECT" maxLength="256"/>
+        <Attribute name="startTime" javaType="Timestamp" columnName="START_TIME"/>
+        <Attribute name="endTime" javaType="Timestamp" columnName="END_TIME"/>
+        <Attribute name="locationType" javaType="String" columnName="LOCATION_TYPE" maxLength="32"/>
+        <Attribute name="outcomeCode" javaType="String" columnName="OUTCOME_CODE" maxLength="32"/>
+        <Relationship name="customer" relatedObject="Customer" cardinality="many-to-one" reverseRelationshipName="meetings">Customer.customerId = this.customerId</Relationship>
+        <Relationship name="salesRep" relatedObject="SalesRep" cardinality="many-to-one" reverseRelationshipName="meetings">SalesRep.repId = this.repId</Relationship>
+</MithraObject>

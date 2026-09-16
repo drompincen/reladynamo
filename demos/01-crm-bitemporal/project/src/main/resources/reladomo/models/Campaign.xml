@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>Campaign</ClassName>
+        <DefaultTable>CAMPAIGN</DefaultTable>
+        <AsOfAttribute name="businessDate" fromColumnName="BUSINESS_DATE_FROM" toColumnName="BUSINESS_DATE_THRU"
+                       toIsInclusive="false" isProcessingDate="false"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="campaignId" javaType="long" columnName="CAMPAIGN_ID" primaryKey="true"/>
+        <Attribute name="name" javaType="String" columnName="NAME" maxLength="128"/>
+        <Attribute name="campaignType" javaType="String" columnName="CAMPAIGN_TYPE" maxLength="32"/>
+        <Attribute name="status" javaType="String" columnName="STATUS" maxLength="32"/>
+        <Attribute name="budget" javaType="BigDecimal" columnName="BUDGET" precision="18" scale="2"/>
+        <Attribute name="startDate" javaType="Timestamp" columnName="START_DATE"/>
+        <Attribute name="endDate" javaType="Timestamp" columnName="END_DATE"/>
+        <Attribute name="ownerRepId" javaType="long" columnName="OWNER_REP_ID"/>
+        <Relationship name="ownerRep" relatedObject="SalesRep" cardinality="many-to-one" reverseRelationshipName="ownedCampaigns">SalesRep.repId = this.ownerRepId</Relationship>
+</MithraObject>

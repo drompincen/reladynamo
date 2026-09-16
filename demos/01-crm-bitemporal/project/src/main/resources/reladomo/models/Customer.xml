@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>Customer</ClassName>
+        <DefaultTable>CUSTOMER</DefaultTable>
+        <AsOfAttribute name="businessDate" fromColumnName="BUSINESS_DATE_FROM" toColumnName="BUSINESS_DATE_THRU"
+                       toIsInclusive="false" isProcessingDate="false"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="customerId" javaType="long" columnName="CUSTOMER_ID" primaryKey="true"/>
+        <Attribute name="name" javaType="String" columnName="NAME" maxLength="128"/>
+        <Attribute name="legalName" javaType="String" columnName="LEGAL_NAME" maxLength="256"/>
+        <Attribute name="industryId" javaType="String" columnName="INDUSTRY_ID" maxLength="32"/>
+        <Attribute name="segmentCode" javaType="String" columnName="SEGMENT_CODE" maxLength="32"/>
+        <Attribute name="status" javaType="String" columnName="STATUS" maxLength="32"/>
+        <Attribute name="annualRevenue" javaType="BigDecimal" columnName="ANNUAL_REVENUE" precision="18" scale="2"/>
+        <Attribute name="employeeCount" javaType="int" columnName="EMPLOYEE_COUNT"/>
+        <Attribute name="ownerRepId" javaType="long" columnName="OWNER_REP_ID"/>
+        <Attribute name="createdDate" javaType="Timestamp" columnName="CREATED_DATE"/>
+        <Relationship name="industry" relatedObject="Industry" cardinality="many-to-one" reverseRelationshipName="customers">Industry.industryCode = this.industryId</Relationship>
+        <Relationship name="ownerRep" relatedObject="SalesRep" cardinality="many-to-one" reverseRelationshipName="ownedCustomers">SalesRep.repId = this.ownerRepId</Relationship>
+</MithraObject>

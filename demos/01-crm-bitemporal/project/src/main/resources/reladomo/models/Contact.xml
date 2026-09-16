@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>Contact</ClassName>
+        <DefaultTable>CONTACT</DefaultTable>
+        <AsOfAttribute name="businessDate" fromColumnName="BUSINESS_DATE_FROM" toColumnName="BUSINESS_DATE_THRU"
+                       toIsInclusive="false" isProcessingDate="false"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="contactId" javaType="long" columnName="CONTACT_ID" primaryKey="true"/>
+        <Attribute name="customerId" javaType="long" columnName="CUSTOMER_ID"/>
+        <Attribute name="firstName" javaType="String" columnName="FIRST_NAME" maxLength="64"/>
+        <Attribute name="lastName" javaType="String" columnName="LAST_NAME" maxLength="64"/>
+        <Attribute name="title" javaType="String" columnName="TITLE" maxLength="128"/>
+        <Attribute name="department" javaType="String" columnName="DEPARTMENT" maxLength="64"/>
+        <Attribute name="isPrimary" javaType="boolean" columnName="IS_PRIMARY"/>
+        <Attribute name="preferredChannel" javaType="String" columnName="PREFERRED_CHANNEL" maxLength="32"/>
+        <Relationship name="customer" relatedObject="Customer" cardinality="many-to-one" reverseRelationshipName="contacts">Customer.customerId = this.customerId</Relationship>
+</MithraObject>

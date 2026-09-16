@@ -1,0 +1,76 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  # The adapter must run on its compatibility floor and on every LTS above it. release=11 only
+  # proves compilation; these jobs prove execution, which is the half that actually breaks.
+  adapter:
+    name: adapter (JDK ${{ matrix.jdk }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: [ '11', '17', '21' ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.jdk }}
+          cache: maven
+      - name: Build and test
+        run: mvn -B clean test
+
+  # The full gate, including the H2-vs-DynamoDB differential suite. Run once rather than per-JDK:
+  # it is slow, and what it verifies is store equivalence, not JVM compatibility.
+  gate:
+    name: closed-loop gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Run scripts/check.sh
+        run: bash scripts/check.sh --iteration ci
+      - name: Publish gate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: check-report
+          path: reports/check-latest.json
+
+  # Each demo is a standalone project outside the reactor, so the root build does not cover them.
+  # They are the proof that the adapter works on models it did not ship with.
+  demos:
+    name: demo ${{ matrix.demo.dir }} (JDK ${{ matrix.demo.jdk }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        demo:
+          - { dir: '01-crm-bitemporal',      jdk: '11' }
+          - { dir: '02-petstore-unitemporal', jdk: '21' }
+          - { dir: '03-car-classifier',       jdk: '11' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.demo.jdk }}
+          cache: maven
+      - name: Install the adapter
+        run: mvn -B -q clean install -DskipTests
+      - name: Test the demo
+        run: mvn -B clean test
+        working-directory: demos/${{ matrix.demo.dir }}/project
+
+  # DynamoDB Local ships no linux-aarch64 sqlite4java native, so the DynamoDB modules cannot run on
+  # ARM. ubuntu-latest is x86-64, which is exactly why this belongs in CI rather than on a dev box.
+  # See docs/JAVA11-VERIFICATION.md.

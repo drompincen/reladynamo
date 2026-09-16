@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>Call</ClassName>
+        <DefaultTable>CALL_RECORD</DefaultTable>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="callId" javaType="long" columnName="CALL_ID" primaryKey="true"/>
+        <Attribute name="contactId" javaType="long" columnName="CONTACT_ID"/>
+        <Attribute name="customerId" javaType="long" columnName="CUSTOMER_ID"/>
+        <Attribute name="repId" javaType="long" columnName="REP_ID"/>
+        <Attribute name="direction" javaType="String" columnName="DIRECTION" maxLength="16"/>
+        <Attribute name="startTime" javaType="Timestamp" columnName="START_TIME"/>
+        <Attribute name="durationSeconds" javaType="int" columnName="DURATION_SECONDS"/>
+        <Attribute name="outcomeCode" javaType="String" columnName="OUTCOME_CODE" maxLength="32"/>
+        <Attribute name="notes" javaType="String" columnName="NOTES" maxLength="4000"/>
+        <Relationship name="contact" relatedObject="Contact" cardinality="many-to-one" reverseRelationshipName="calls">Contact.contactId = this.contactId</Relationship>
+        <Relationship name="customer" relatedObject="Customer" cardinality="many-to-one" reverseRelationshipName="calls">Customer.customerId = this.customerId</Relationship>
+        <Relationship name="salesRep" relatedObject="SalesRep" cardinality="many-to-one" reverseRelationshipName="calls">SalesRep.repId = this.repId</Relationship>
+</MithraObject>

@@ -1,0 +1,79 @@
+$ mvn -q compile exec:java
+(cwd: crm-bitemporal-demo)
+
+crm-bitemporal-demo
+Seeded 100 logical records (deterministic timestamps, UTC).
+
+================================================================================
+1. Retroactive address correction
+================================================================================
+Acme moved on business date 2025-03-01; we only learned on processing date 2025-06-15.
+Same business date 2025-04-01 queried from two processing dates must disagree.
+asOfBusiness | asOfProcessing             | line1          | city          | postal
+-------------+----------------------------+----------------+---------------+-------
+2025-04-01   | 2025-04-02 (as known then) | 100 Market St  | San Francisco | 94103
+2025-04-01   | 2025-10-01 (as known now)  | 200 Mission St | San Francisco | 94105
+
+================================================================================
+2. Territory reassignment effective in the past
+================================================================================
+Acme was reassigned West->East effective 2025-02-01; recorded 2025-08-01.
+Commission owner is the assigned rep at the as-of rectangle.
+asOfBusiness | asOfProcessing             | territoryId | repId | commissionOwner
+-------------+----------------------------+-------------+-------+----------------
+2025-04-01   | 2025-04-02 (as known then) | 1           | 1     | Alice
+2025-04-01   | 2025-10-01 (as known now)  | 2           | 2     | Bob
+
+================================================================================
+3. Opportunity amount restated after close
+================================================================================
+Closed won 2025-05-15 at $100,000; restated to $85,000 on 2025-08-01.
+The originally reported pipeline remains reproducible via the April/June processing date.
+asOfBusiness | asOfProcessing            | stage      | amount    | probability
+-------------+---------------------------+------------+-----------+------------
+2025-06-01   | 2025-06-02 (audit report) | CLOSED_WON | 100000.00 | 100
+2025-06-01   | 2025-10-01 (as known now) | CLOSED_WON | 85000.00  | 100
+
+================================================================================
+4. Consent withdrawn effective a past date (GDPR)
+================================================================================
+Outreach email sent 2025-04-01 14:00. Consent withdrawn effective 2025-03-15, recorded 2025-07-01.
+Lawful as known then; absent as known now - for the same business date as the send.
+asOfBusiness | asOfProcessing             | granted | lawfulBasis | outreachLawful
+-------------+----------------------------+---------+-------------+---------------
+2025-04-01   | 2025-04-02 (as known then) | true    | consent     | YES
+2025-04-01   | 2025-10-01 (as known now)  | false   | withdrawn   | NO
+
+================================================================================
+5. Terminate / expire Subscription and SalesRep
+================================================================================
+entity         | asOfBusiness | asOfProcessing | present | detail
+---------------+--------------+----------------+---------+----------------------
+Subscription   | 2025-08-01   | 2025-10-01     | YES     | mrr=10000.00
+Subscription   | 2025-08-16   | 2025-10-01     | NO      |
+SalesRep Carol | 2025-08-01   | 2025-10-01     | YES     | carol@reladynamo.test
+SalesRep Carol | 2025-09-01   | 2025-10-01     | NO      |
+
+================================================================================
+6. updateUntil / incrementUntil on PriceBookEntry
+================================================================================
+Base $100. updateUntil $80 for [2025-04-01, 2025-07-01). incrementUntil +$5 for [2025-07-01, 2025-08-01).
+asOfBusiness | asOfProcessing | unitPrice | window
+-------------+----------------+-----------+-------------------------
+2025-02-01   | 2025-10-01     | 100.00    | base
+2025-05-01   | 2025-10-01     | 80.00     | promo updateUntil
+2025-07-15   | 2025-10-01     | 105.00    | surcharge incrementUntil
+2025-09-01   | 2025-10-01     | 100.00    | after bounded windows
+
+================================================================================
+7. Full history reconstruction for Customer Acme
+================================================================================
+Every processing-date version (edge-point query on both temporal axes).
+inZ                 | outZ                | businessFrom        | businessThru        | name             | annualRevenue | status
+--------------------+---------------------+---------------------+---------------------+------------------+---------------+-------
+2025-01-02 09:00:00 | 2025-03-10 09:00:00 | 2025-01-01 00:00:00 | 2025-03-11 09:00:00 | Acme Corp        | 50000000.00   | ACTIVE
+2025-03-10 09:00:00 | 9999-12-01 23:59:00 | 2025-01-01 00:00:00 | 2025-03-01 00:00:00 | Acme Corp        | 50000000.00   | ACTIVE
+2025-03-10 09:00:00 | 2025-05-01 09:00:00 | 2025-03-01 00:00:00 | 2025-05-02 09:00:00 | Acme Corporation | 50000000.00   | ACTIVE
+2025-05-01 09:00:00 | 9999-12-01 23:59:00 | 2025-03-01 00:00:00 | 2025-05-01 00:00:00 | Acme Corporation | 50000000.00   | ACTIVE
+2025-05-01 09:00:00 | 9999-12-01 23:59:00 | 2025-05-01 00:00:00 | 9999-12-01 23:59:00 | Acme Corporation | 62000000.00   | ACTIVE
+Rectangle count: 5

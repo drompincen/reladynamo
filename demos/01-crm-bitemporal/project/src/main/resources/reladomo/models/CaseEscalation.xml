@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>CaseEscalation</ClassName>
+        <DefaultTable>CASE_ESCALATION</DefaultTable>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="escalationId" javaType="long" columnName="ESCALATION_ID" primaryKey="true"/>
+        <Attribute name="caseId" javaType="long" columnName="CASE_ID"/>
+        <Attribute name="escalatedToRepId" javaType="long" columnName="ESCALATED_TO_REP_ID"/>
+        <Attribute name="reason" javaType="String" columnName="REASON" maxLength="256"/>
+        <Attribute name="escalatedTime" javaType="Timestamp" columnName="ESCALATED_TIME"/>
+        <Relationship name="supportCase" relatedObject="SupportCase" cardinality="many-to-one" reverseRelationshipName="escalations">SupportCase.caseId = this.caseId</Relationship>
+        <Relationship name="escalatedToRep" relatedObject="SalesRep" cardinality="many-to-one" reverseRelationshipName="escalations">SalesRep.repId = this.escalatedToRepId</Relationship>
+</MithraObject>

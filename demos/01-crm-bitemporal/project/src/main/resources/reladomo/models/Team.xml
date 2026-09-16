@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>Team</ClassName>
+        <DefaultTable>TEAM</DefaultTable>
+        <AsOfAttribute name="businessDate" fromColumnName="BUSINESS_DATE_FROM" toColumnName="BUSINESS_DATE_THRU"
+                       toIsInclusive="false" isProcessingDate="false"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="teamId" javaType="long" columnName="TEAM_ID" primaryKey="true"/>
+        <Attribute name="name" javaType="String" columnName="NAME" maxLength="128"/>
+        <Attribute name="regionCode" javaType="String" columnName="REGION_CODE" maxLength="16"/>
+        <Attribute name="managerRepId" javaType="long" columnName="MANAGER_REP_ID"/>
+        <Relationship name="managerRep" relatedObject="SalesRep" cardinality="many-to-one" reverseRelationshipName="managedTeams">SalesRep.repId = this.managerRepId</Relationship>
+</MithraObject>

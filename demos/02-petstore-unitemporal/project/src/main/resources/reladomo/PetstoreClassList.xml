@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Mithra>
+    <MithraObjectResource name="Pet"/>
+    <MithraObjectResource name="Species"/>
+    <MithraObjectResource name="Breed"/>
+    <MithraObjectResource name="Kennel"/>
+    <MithraObjectResource name="FeedingSchedule"/>
+    <MithraObjectResource name="VeterinaryVisit"/>
+    <MithraObjectResource name="Vaccination"/>
+    <MithraObjectResource name="GroomingAppointment"/>
+    <MithraObjectResource name="Product"/>
+    <MithraObjectResource name="ProductCategory"/>
+    <MithraObjectResource name="StockLevel"/>
+    <MithraObjectResource name="SalesOrder"/>
+    <MithraObjectResource name="SalesOrderLine"/>
+    <MithraObjectResource name="Payment"/>
+    <MithraObjectResource name="PurchaseOrder"/>
+    <MithraObjectResource name="PurchaseOrderLine"/>
+    <MithraObjectResource name="Shipment"/>
+    <MithraObjectResource name="PetOwner"/>
+    <MithraObjectResource name="Adoption"/>
+    <MithraObjectResource name="Employee"/>
+    <MithraObjectResource name="Store"/>
+    <MithraObjectResource name="Supplier"/>
+</Mithra>

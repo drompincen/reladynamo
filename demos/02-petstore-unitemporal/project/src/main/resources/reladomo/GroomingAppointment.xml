@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional" disableForeignKeys="true"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="mithraobject.xsd">
+    <PackageName>com.reladynamo.demo.petstore.domain</PackageName>
+    <ClassName>GroomingAppointment</ClassName>
+        <DatedTransactionalTemporalDirector>com.gs.fw.common.mithra.behavior.AuditOnlyTemporalDirector</DatedTransactionalTemporalDirector>
+    <DefaultTable>GROOMING_APPOINTMENT</DefaultTable>
+    <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                   toIsInclusive="false" isProcessingDate="true"
+                   infinityDate="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"
+                   defaultIfNotSpecified="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"
+                   timezoneConversion="convert-to-utc"/>
+    <Attribute name="appointmentId" javaType="long" columnName="APPOINTMENT_ID" primaryKey="true" nullable="false"/>
+    <Attribute name="petId" javaType="long" columnName="PET_ID"/>
+    <Attribute name="groomerId" javaType="long" columnName="GROOMER_ID"/>
+    <Attribute name="scheduledTime" javaType="Timestamp" columnName="SCHEDULED_TIME"/>
+    <Attribute name="serviceCode" javaType="String" columnName="SERVICE_CODE" maxLength="32"/>
+    <Attribute name="status" javaType="String" columnName="STATUS" maxLength="32"/>
+
+</MithraObject>

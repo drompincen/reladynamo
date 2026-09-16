@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>Industry</ClassName>
+        <DefaultTable>INDUSTRY</DefaultTable>
+        <Attribute name="industryCode" javaType="String" columnName="INDUSTRY_CODE" primaryKey="true" maxLength="32"/>
+        <Attribute name="name" javaType="String" columnName="NAME" maxLength="128"/>
+        <Attribute name="sicCode" javaType="String" columnName="SIC_CODE" maxLength="16"/>
+</MithraObject>

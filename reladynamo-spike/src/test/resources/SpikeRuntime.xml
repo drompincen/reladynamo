@@ -1,0 +1,6 @@
+<MithraRuntime>
+    <ConnectionManager className="io.reladynamo.spike.H2ConnectionManager">
+        <MithraObjectConfiguration cacheType="partial"
+                                   className="io.reladynamo.spike.domain.SpikeBalance"/>
+    </ConnectionManager>
+</MithraRuntime>

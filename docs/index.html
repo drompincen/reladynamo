@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reladynamo</title>
+<meta name="description" content="A generic, MIT-licensed Reladomo persistence adapter for Amazon DynamoDB that preserves Reladomo's bitemporal semantics.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  :root {
+    color-scheme: light dark;
+    --ground:#F6F7F9; --surface:#FFFFFF; --ink:#16202E; --ink-soft:#55616F;
+    --rule:#D8DDE4; --rule-soft:#E8ECF1; --code-bg:#EDF0F4;
+    --accent:#1B6470; --accent-bg:#E2EFF1;
+    --warn:#9C2F49; --warn-bg:#F8E7EB;
+    --ok:#2F6B3A;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:#10161F; --surface:#172230; --ink:#E4E9EF; --ink-soft:#9BA8B7;
+      --rule:#2C3A4B; --rule-soft:#222E3D; --code-bg:#1B2735;
+      --accent:#5FB8C6; --accent-bg:#122C31;
+      --warn:#E8809A; --warn-bg:#331A22;
+      --ok:#7FC48A;
+    }
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; padding-block:0 5rem; padding-left:1.25rem; padding-right:1.25rem;
+    background:var(--ground); color:var(--ink);
+    font-family:"Source Serif 4",Georgia,serif; font-size:1.0625rem; line-height:1.65;
+  }
+  .wrap { max-width:52rem; margin:0 auto; }
+  nav.top {
+    display:flex; flex-wrap:wrap; align-items:center; gap:.5rem 1.4rem;
+    padding-block:1rem; border-bottom:1px solid var(--rule);
+    font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.9rem;
+  }
+  nav.top .brand { font-weight:700; color:var(--ink); text-decoration:none; margin-right:auto; }
+  a { color:var(--accent); }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
+  header.hero { padding-block:3.5rem 2.5rem; }
+  .eyebrow { font-family:"IBM Plex Mono",monospace; font-size:.72rem; letter-spacing:.13em;
+    text-transform:uppercase; color:var(--ink-soft); margin:0 0 .6rem; }
+  h1 { font-family:"IBM Plex Sans",system-ui,sans-serif; font-weight:700;
+    font-size:clamp(2.2rem,7vw,3.4rem); line-height:1.05; letter-spacing:-.02em; margin:0 0 1rem; }
+  h2 { font-family:"IBM Plex Sans",system-ui,sans-serif; font-weight:600; font-size:1.45rem;
+    line-height:1.2; letter-spacing:-.01em; margin:0 0 .8rem; }
+  h3 { font-family:"IBM Plex Sans",system-ui,sans-serif; font-weight:600; font-size:1rem; margin:0 0 .35rem; }
+  p { margin:0 0 1rem; }
+  .lede { font-size:1.25rem; line-height:1.55; color:var(--ink-soft); max-width:40rem; margin:0; }
+  .actions { display:flex; flex-wrap:wrap; gap:.7rem; margin-top:1.6rem;
+    font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.92rem; }
+  .btn { display:inline-block; padding:.55rem 1rem; border-radius:4px; text-decoration:none;
+    border:1px solid var(--rule); color:var(--ink); background:var(--surface); }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:var(--ground); }
+
+  section { padding-block:2.2rem; border-top:1px solid var(--rule); }
+  code { font-family:"IBM Plex Mono",monospace; font-size:.85em; background:var(--code-bg);
+    padding:.12em .35em; border-radius:3px; }
+  pre { font-family:"IBM Plex Mono",monospace; font-size:.85rem; line-height:1.5;
+    background:var(--code-bg); padding:1rem 1.1rem; border-radius:4px; overflow-x:auto; margin:0 0 1rem; }
+  pre code { background:none; padding:0; font-size:inherit; }
+
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(10.5rem,1fr)); gap:.8rem; margin-bottom:1.2rem; }
+  .stat { background:var(--surface); border:1px solid var(--rule-soft); border-radius:4px; padding:.9rem 1rem; }
+  .stat .v { font-family:"IBM Plex Sans",system-ui,sans-serif; font-weight:700; font-size:1.6rem;
+    line-height:1.1; font-variant-numeric:tabular-nums; }
+  .stat .l { font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.8rem; color:var(--ink-soft); margin-top:.25rem; }
+  .callout { background:var(--warn-bg); border-left:3px solid var(--warn); padding:.9rem 1.1rem;
+    border-radius:0 3px 3px 0; font-size:.98rem; }
+  .callout p:last-child { margin-bottom:0; }
+
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(15rem,1fr)); gap:.9rem; }
+  .card { display:block; background:var(--surface); border:1px solid var(--rule-soft); border-radius:4px;
+    padding:1.1rem 1.15rem; text-decoration:none; color:var(--ink); }
+  .card:hover { border-color:var(--accent); }
+  .card p { font-size:.95rem; color:var(--ink-soft); margin:0; }
+
+  .doclist { display:grid; grid-template-columns:repeat(auto-fit,minmax(15rem,1fr)); gap:1.4rem 2rem; }
+  .doclist ul { list-style:none; padding:0; margin:0; font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.92rem; }
+  .doclist li { padding-block:.3rem; border-bottom:1px solid var(--rule-soft); }
+  .doclist li span { display:block; color:var(--ink-soft); font-size:.82rem; }
+
+  .scroll { overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.9rem; }
+  th,td { text-align:left; padding:.5rem .7rem; border-bottom:1px solid var(--rule-soft); vertical-align:top; }
+  th { font-weight:600; font-size:.72rem; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-soft); }
+  td.num { font-variant-numeric:tabular-nums; }
+  footer { border-top:1px solid var(--rule); padding-top:1.5rem; font-family:"IBM Plex Sans",system-ui,sans-serif;
+    font-size:.85rem; color:var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="top" aria-label="Site">
+    <a class="brand" href="./">Reladynamo</a>
+    <a href="#status">Status</a>
+    <a href="#explainers">Explainers</a>
+    <a href="#docs">Documentation</a>
+    <a href="#quickstart">Quickstart</a>
+    <a href="https://github.com/drompincen/reladynamo">GitHub</a>
+  </nav>
+
+  <header class="hero">
+    <p class="eyebrow">Reladomo → Amazon DynamoDB · MIT · Java 11+</p>
+    <h1>Reladynamo</h1>
+    <p class="lede">A generic Reladomo persistence adapter for DynamoDB. Point an existing Reladomo
+      object model at DynamoDB without changing the XML, the generated classes, or a single finder call
+      site — and keep Reladomo's bitemporal semantics exactly.</p>
+    <div class="actions">
+      <a class="btn primary" href="bitemporal-seam.html">How it works</a>
+      <a class="btn" href="https://github.com/drompincen/reladynamo">Source on GitHub</a>
+      <a class="btn" href="https://github.com/drompincen/reladynamo/blob/main/docs/SUPPORT-CONTRACT.md">Support contract</a>
+    </div>
+  </header>
+
+  <section>
+    <h2>The idea</h2>
+    <p>Reladomo's bitemporal logic lives in its <code>TemporalDirector</code>, <strong>above</strong> the
+      persistence layer. By the time a write reaches storage, the director has already decided which rows
+      should exist and hands down plain inserts, updates and deletes that carry their own
+      <code>businessDate</code> and <code>processingDate</code> boundaries.</p>
+    <p>So Reladynamo does not reimplement bitemporality — it replaces only the persister and
+      <strong>inherits</strong> everything above it. That makes "the same bitemporal behaviour" something
+      to test rather than assert: one conformance suite runs against H2 (stock Reladomo JDBC, the
+      reference) and against DynamoDB, and the results must be identical.</p>
+<pre><code>Finder / your code
+      ↓
+MithraObjectPortal
+      ↓
+TemporalDirector             ← bitemporal semantics live here, unchanged
+      ↓
+MithraDatedObjectPersister   ← Reladynamo replaces only this
+      ↓
+DynamoDB</code></pre>
+  </section>
+
+  <section id="status">
+    <h2>Status</h2>
+    <p>From the closed-loop gate (<code>scripts/check.sh</code>) as of 2026-09-16:</p>
+    <div class="stats">
+      <div class="stat"><div class="v">8 / 8</div><div class="l">gates passing</div></div>
+      <div class="stat"><div class="v">689</div><div class="l">adapter tests</div></div>
+      <div class="stat"><div class="v">78 + 176</div><div class="l">H2-vs-DynamoDB differential tests (storage + query path)</div></div>
+      <div class="stat"><div class="v">10 / 13</div><div class="l">inspection acceptance cases passing — the other three are declared out of scope</div></div>
+    </div>
+    <div class="callout">
+      <p><strong>Not production ready.</strong> Nothing has run against a real AWS endpoint yet (tests use
+        DynamoDB Local in-process), and the adapter has not been load tested. Online migration, reverse
+        migration and Sybase ASE extraction are out of scope for 0.1.0. Read the
+        <a href="https://github.com/drompincen/reladynamo/blob/main/docs/SUPPORT-CONTRACT.md">support contract</a>
+        before planning a migration.</p>
+    </div>
+  </section>
+
+  <section id="explainers">
+    <h2>Explainers</h2>
+    <div class="cards">
+      <a class="card" href="bitemporal-seam.html">
+        <h3>The bitemporal seam</h3>
+        <p>Where the adapter plugs into Reladomo, the two time axes, and how a row becomes a DynamoDB item.</p>
+      </a>
+      <a class="card" href="query-planner.html">
+        <h3>Planning a bitemporal query</h3>
+        <p>How an arbitrary predicate becomes key conditions, filters, in-memory residuals — or a refusal.</p>
+      </a>
+    </div>
+  </section>
+
+  <section id="docs">
+    <h2>Documentation</h2>
+    <div class="doclist">
+      <div>
+        <h3>Scope and readiness</h3>
+        <ul>
+          <li><a href="https://github.com/drompincen/reladynamo/blob/main/docs/SUPPORT-CONTRACT.md">Support contract</a><span>Permanent boundaries, gaps, and what is promised</span></li>
+          <li><a href="https://github.com/drompincen/reladynamo/blob/main/docs/RELEASE-READINESS.md">Release readiness</a><span>What is proven versus what is not</span></li>
+          <li><a href="https://github.com/drompincen/reladynamo/blob/main/docs/MIGRATION.md">Migration guide</a><span>Lift, backfill, verify, cut over</span></li>
+          <li><a href="https://github.com/drompincen/reladynamo/blob/main/docs/SECURITY-REVIEW.md">Security review</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>Design</h3>
+        <ul>
+          <li><a href="https://github.com/drompincen/reladynamo/blob/main/docs/design/01-xml-to-ddb-mapping.md">XML → DynamoDB mapping</a></li>
+          <li><a href="https://github.com/drompincen/reladynamo/blob/main/docs/design/02-java-config-and-bootstrap.md">Java config and bootstrap</a></li>
+          <li><a href="https://github.com/drompincen/reladynamo/blob/main/docs/design/03-json-item-codec.md">JSON item codec</a></li>
+          <li><a href="https://github.com/drompincen/reladynamo/blob/main/docs/design/04-operation-to-ddb-query-planner.md">Operation → query planner</a></li>
+          <li><a href="https://github.com/drompincen/reladynamo/blob/main/docs/TOPOLOGY-DECISION.md">Topology decision</a><span>Why table-per-object</span></li>
+          <li><a href="https://github.com/drompincen/reladynamo/blob/main/docs/INDEXING-PRESCRIPTION.md">Indexing prescription</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>Verification</h3>
+        <ul>
+          <li><a href="https://github.com/drompincen/reladynamo/blob/main/docs/INSPECTION-2026-09-14.md">Inspection, 2026-09-14</a><span>21 findings from an independent review</span></li>
+          <li><a href="https://github.com/drompincen/reladynamo/blob/main/docs/INSPECTION-TRACKING.md">Inspection tracking</a><span>Disposition per finding and acceptance case</span></li>
+          <li><a href="https://github.com/drompincen/reladynamo/blob/main/docs/FINDER-MATRIX.md">Finder matrix</a></li>
+          <li><a href="https://github.com/drompincen/reladynamo/blob/main/docs/CONFORMANCE-FINDINGS.md">Conformance findings</a></li>
+          <li><a href="https://github.com/drompincen/reladynamo/blob/main/docs/COVERAGE-GAPS.md">Coverage gaps</a></li>
+          <li><a href="https://github.com/drompincen/reladynamo/blob/main/docs/ASSUMPTION-CHALLENGE.md">Assumption challenges</a></li>
+          <li><a href="https://github.com/drompincen/reladynamo/blob/main/docs/JAVA11-VERIFICATION.md">Java 11 verification</a></li>
+          <li><a href="https://github.com/drompincen/reladynamo/blob/main/docs/PERFORMANCE.md">Performance</a></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="quickstart">
+    <h2>Quickstart</h2>
+<pre><code>git clone https://github.com/drompincen/reladynamo.git
+cd reladynamo
+mvn clean install          # all modules; DynamoDB Local runs in-process, no Docker
+bash scripts/check.sh      # the full gate, including the H2-vs-DynamoDB differential suite</code></pre>
+    <p>Then run a demo. Each is a standalone Maven project that runs against both H2 and DynamoDB:</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Demo</th><th>JDK</th><th>Entities</th><th>Shape</th></tr></thead>
+        <tbody>
+          <tr><td><a href="https://github.com/drompincen/reladynamo/tree/main/demos/01-crm-bitemporal">01-crm-bitemporal</a></td><td class="num">11</td><td class="num">~46</td><td>Bitemporal + audit-only + plain</td></tr>
+          <tr><td><a href="https://github.com/drompincen/reladynamo/tree/main/demos/02-petstore-unitemporal">02-petstore-unitemporal</a></td><td class="num">21</td><td class="num">~22</td><td>One <code>AsOfAttribute</code></td></tr>
+          <tr><td><a href="https://github.com/drompincen/reladynamo/tree/main/demos/03-car-classifier">03-car-classifier</a></td><td class="num">11</td><td class="num">5</td><td>Bitemporal <strong>rules</strong> — start here</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p>MIT licensed — see <a href="https://github.com/drompincen/reladynamo/blob/main/LICENSE">LICENSE</a>.
+      Reladomo is Apache-2.0; DynamoDB Local is used in test scope only — see
+      <a href="https://github.com/drompincen/reladynamo/blob/main/THIRD-PARTY-NOTICES.md">third-party notices</a>.</p>
+  </footer>
+
+</div>
+</body>
+</html>

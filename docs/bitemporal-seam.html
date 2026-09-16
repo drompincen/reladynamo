@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Bitemporal Seam · Reladynamo</title>
+<meta name="description" content="Where Reladynamo plugs into Reladomo, the two time axes, and how a bitemporal row becomes a DynamoDB item.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  :root {
+    color-scheme: light dark;
+    --ground:      #F6F7F9;
+    --surface:     #FFFFFF;
+    --ink:         #16202E;
+    --ink-soft:    #55616F;
+    --rule:        #D8DDE4;
+    --rule-soft:   #E8ECF1;
+    /* Two hues carry meaning, not decoration: this subject IS two time axes. */
+    --business:    #A8661B;
+    --business-bg: #F7EEE1;
+    --processing:  #1B6470;
+    --processing-bg:#E2EFF1;
+    /* The one box Reladynamo replaces. */
+    --swap:        #9C2F49;
+    --swap-bg:     #F8E7EB;
+    --code-bg:     #EDF0F4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:      #10161F;
+      --surface:     #172230;
+      --ink:         #E4E9EF;
+      --ink-soft:    #9BA8B7;
+      --rule:        #2C3A4B;
+      --rule-soft:   #222E3D;
+      --business:    #E0A65A;
+      --business-bg: #2E2415;
+      --processing:  #5FB8C6;
+      --processing-bg:#122C31;
+      --swap:        #E8809A;
+      --swap-bg:     #331A22;
+      --code-bg:     #1B2735;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding-block: 2rem 6rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 1.0625rem;
+    line-height: 1.65;
+  }
+  .wrap { max-width: 44rem; margin: 0 auto; display: flex; flex-direction: column; gap: 2.75rem; }
+
+  .crumbs {
+    font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 0.85rem;
+    display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; margin-bottom: -1rem;
+  }
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.72rem; letter-spacing: 0.13em; text-transform: uppercase;
+    color: var(--ink-soft); margin: 0 0 0.5rem;
+  }
+  h1 {
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-weight: 700; font-size: clamp(2rem, 6vw, 2.9rem); line-height: 1.08;
+    letter-spacing: -0.02em; margin: 0 0 0.75rem; text-wrap: balance;
+  }
+  h2 {
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-weight: 600; font-size: 1.4rem; line-height: 1.2; letter-spacing: -0.01em;
+    margin: 0 0 0.6rem; text-wrap: balance;
+  }
+  p { margin: 0 0 1rem; }
+  p:last-child { margin-bottom: 0; }
+  .lede { font-size: 1.2rem; line-height: 1.55; color: var(--ink-soft); margin: 0; }
+  strong { font-weight: 600; }
+  code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.85em; background: var(--code-bg); padding: 0.12em 0.35em; border-radius: 3px;
+  }
+  section { display: flex; flex-direction: column; gap: 0.9rem; }
+
+  figure { margin: 0; display: flex; flex-direction: column; gap: 0.7rem; }
+  figure svg { display: block; width: 100%; max-width: 100%; height: auto; }
+  figcaption {
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-size: 0.86rem; line-height: 1.5; color: var(--ink-soft);
+    border-left: 2px solid var(--rule); padding-left: 0.8rem;
+  }
+  .figframe {
+    background: var(--surface); border: 1px solid var(--rule-soft);
+    border-radius: 4px; padding: 1.25rem 1rem;
+  }
+  .scroll { overflow-x: auto; }
+
+  .keyline { border: 0; border-top: 1px solid var(--rule); margin: 0; }
+
+  table { border-collapse: collapse; width: 100%; font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 0.88rem; }
+  th, td { text-align: left; padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  th { font-weight: 600; font-size: 0.72rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-soft); }
+  td.mono, th.mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 1rem 1.4rem; font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 0.8rem; color: var(--ink-soft); }
+  .legend span { display: inline-flex; align-items: center; gap: 0.45rem; }
+  .chip { width: 0.85rem; height: 0.85rem; border-radius: 2px; flex: none; }
+  .chip-b { background: var(--business-bg); border: 1.5px solid var(--business); }
+  .chip-p { background: var(--processing-bg); border: 1.5px solid var(--processing); }
+  .chip-s { background: var(--swap-bg); border: 1.5px solid var(--swap); }
+
+  .callout {
+    background: var(--swap-bg); border-left: 3px solid var(--swap);
+    padding: 0.9rem 1.1rem; border-radius: 0 3px 3px 0;
+  }
+  .callout p { font-size: 0.98rem; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    a { transition: color 120ms ease; }
+  }
+  a { color: var(--processing); }
+  a:focus-visible, :focus-visible { outline: 2px solid var(--processing); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <nav class="crumbs" aria-label="Site">
+    <a href="./">← Reladynamo docs</a>
+    <a href="query-planner.html">Next: planning a bitemporal query</a>
+    <a href="https://github.com/drompincen/reladynamo">GitHub</a>
+  </nav>
+
+  <header>
+    <p class="eyebrow">Reladomo → DynamoDB</p>
+    <h1>The bitemporal seam</h1>
+    <p class="lede">How a Java ORM built for relational databases persists to DynamoDB without
+      reimplementing a single rule about time.</p>
+  </header>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>One box changes</h2>
+    <p>Reladomo is a bitemporal ORM: every row knows both when a fact was <em>true</em> and when the
+      system <em>learned</em> it. The instinct when porting that to DynamoDB is to rebuild those rules
+      on top of a key-value store. That instinct is wrong, and the reason is structural.</p>
+    <p>Reladomo's temporal logic lives in its <code>TemporalDirector</code>, which sits <strong>above</strong>
+      persistence. By the time anything reaches the storage layer, the director has already decided which
+      rows should exist and handed down plain inserts, updates and deletes — each carrying its own
+      timestamps.</p>
+
+    <div class="figframe scroll">
+      <figure>
+        <svg viewBox="0 0 820 440" role="img" aria-label="A shared Reladomo call stack of Finder, Portal and TemporalDirector, forking below into a JDBC persister writing to a relational database and a DynamoDbPersister writing to DynamoDB. Only the persister and the store differ.">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
+            </marker>
+            <marker id="ars" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--swap)"></path>
+            </marker>
+          </defs>
+
+          <text x="410" y="20" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1.4" fill="currentColor" opacity="0.55">IDENTICAL ABOVE THE SEAM</text>
+
+          <rect x="285" y="34" width="250" height="40" rx="3" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+          <text x="410" y="59" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" fill="currentColor">Your finder calls</text>
+
+          <line x1="410" y1="74" x2="410" y2="98" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"></line>
+
+          <rect x="285" y="100" width="250" height="40" rx="3" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+          <text x="410" y="125" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" fill="currentColor">MithraObjectPortal</text>
+
+          <line x1="410" y1="140" x2="410" y2="164" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"></line>
+
+          <rect x="255" y="166" width="310" height="52" rx="3" fill="none" stroke="currentColor" stroke-width="2"></rect>
+          <text x="410" y="188" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600" fill="currentColor">TemporalDirector</text>
+          <text x="410" y="206" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.7">terminate · updateUntil · incrementUntil</text>
+
+          <line x1="410" y1="218" x2="410" y2="244" stroke="currentColor" stroke-width="1.4"></line>
+          <text x="418" y="238" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.75">plain insert / update / delete</text>
+
+          <line x1="205" y1="244" x2="615" y2="244" stroke="currentColor" stroke-width="1.4"></line>
+          <line x1="205" y1="244" x2="205" y2="278" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"></line>
+          <line x1="615" y1="244" x2="615" y2="278" stroke="var(--swap)" stroke-width="1.6" marker-end="url(#ars)"></line>
+
+          <text x="205" y="300" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" letter-spacing="1.2" fill="currentColor" opacity="0.55">RELATIONAL</text>
+          <rect x="80" y="310" width="250" height="42" rx="3" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+          <text x="205" y="336" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" fill="currentColor">JDBC persister</text>
+          <line x1="205" y1="352" x2="205" y2="378" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"></line>
+          <rect x="80" y="380" width="250" height="42" rx="3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="4 3"></rect>
+          <text x="205" y="406" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" fill="currentColor">SQL database</text>
+
+          <text x="615" y="300" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" letter-spacing="1.2" fill="var(--swap)">RELADYNAMO</text>
+          <rect x="490" y="310" width="250" height="42" rx="3" fill="var(--swap-bg)" stroke="var(--swap)" stroke-width="1.8"></rect>
+          <text x="615" y="336" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600" fill="var(--swap)">DynamoDbPersister</text>
+          <line x1="615" y1="352" x2="615" y2="378" stroke="var(--swap)" stroke-width="1.6" marker-end="url(#ars)"></line>
+          <rect x="490" y="380" width="250" height="42" rx="3" fill="none" stroke="var(--swap)" stroke-width="1.4" stroke-dasharray="4 3"></rect>
+          <text x="615" y="406" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" fill="var(--swap)">DynamoDB</text>
+        </svg>
+        <figcaption>Everything above the fork is unchanged Reladomo — the same object model XML, the same
+          generated finders, the same call sites. Reladynamo substitutes one implementation and the store
+          behind it.</figcaption>
+      </figure>
+    </div>
+
+    <div class="callout">
+      <p><strong>The practical consequence:</strong> bitemporality is inherited, not rewritten. Any
+        temporal reasoning added below that seam would drift from a relational Reladomo — which is
+        precisely what the differential test suite exists to catch.</p>
+    </div>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>Two axes, not one</h2>
+    <p>Most developers meet "bitemporal" as a word before they meet the problem. The problem is
+      ordinary: <strong>you learn things late.</strong></p>
+    <p>A balance was 10 from January. In June you discover it should have been 99 from March. A
+      single-axis store must choose: overwrite history and lose what you reported in April, or keep the
+      old value and lie about the present. Bitemporal storage refuses the choice by recording both —
+      <em>when the fact was true</em> and <em>when you knew it</em>.</p>
+
+    <div class="figframe scroll">
+      <figure>
+        <svg viewBox="0 0 760 470" role="img" aria-label="A two dimensional grid with business time on the horizontal axis and processing time on the vertical. One rectangle covers the original belief of quantity 10 from January, closed in June. Above it two rectangles record the corrected view: 10 from January to March and 99 from March onward.">
+          <defs>
+            <marker id="ax" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
+            </marker>
+          </defs>
+
+          <line x1="110" y1="400" x2="700" y2="400" stroke="currentColor" stroke-width="1.4" marker-end="url(#ax)"></line>
+          <line x1="110" y1="400" x2="110" y2="40" stroke="currentColor" stroke-width="1.4" marker-end="url(#ax)"></line>
+
+          <text x="405" y="440" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" font-weight="600" fill="var(--business)">business time — when the fact was true</text>
+          <text x="-220" y="26" transform="rotate(-90)" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" font-weight="600" fill="var(--processing)">processing time — when we knew</text>
+
+          <line x1="230" y1="400" x2="230" y2="406" stroke="currentColor" stroke-width="1.2"></line>
+          <text x="230" y="422" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.75">Jan</text>
+          <line x1="390" y1="400" x2="390" y2="406" stroke="currentColor" stroke-width="1.2"></line>
+          <text x="390" y="422" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.75">Mar</text>
+          <line x1="670" y1="400" x2="670" y2="406" stroke="currentColor" stroke-width="1.2"></line>
+          <text x="670" y="422" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.75">∞</text>
+
+          <line x1="104" y1="300" x2="110" y2="300" stroke="currentColor" stroke-width="1.2"></line>
+          <text x="96" y="304" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.75">Jan</text>
+          <line x1="104" y1="200" x2="110" y2="200" stroke="currentColor" stroke-width="1.2"></line>
+          <text x="96" y="204" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.75">Jun</text>
+          <line x1="104" y1="70" x2="110" y2="70" stroke="currentColor" stroke-width="1.2"></line>
+          <text x="96" y="74" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.75">∞</text>
+
+          <rect x="230" y="200" width="440" height="100" fill="var(--processing-bg)" stroke="var(--processing)" stroke-width="1.6"></rect>
+          <text x="450" y="243" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600" fill="currentColor">quantity = 10</text>
+          <text x="450" y="262" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.75">what we believed Jan–Jun</text>
+
+          <rect x="230" y="70" width="160" height="130" fill="var(--business-bg)" stroke="var(--business)" stroke-width="1.6"></rect>
+          <text x="310" y="130" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600" fill="currentColor">10</text>
+          <text x="310" y="149" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.75">still true</text>
+
+          <rect x="390" y="70" width="280" height="130" fill="var(--business-bg)" stroke="var(--business)" stroke-width="1.6"></rect>
+          <text x="530" y="130" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600" fill="currentColor">quantity = 99</text>
+          <text x="530" y="149" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.75">the correction</text>
+
+          <line x1="110" y1="200" x2="700" y2="200" stroke="var(--swap)" stroke-width="1.4" stroke-dasharray="5 4"></line>
+          <text x="700" y="192" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--swap)">correction recorded in June</text>
+        </svg>
+        <figcaption>One <code>setQuantity(99)</code> against a March business date. The director closes the
+          old belief at June and opens two replacements — so the April report still reproduces exactly,
+          and today's query returns 99.</figcaption>
+      </figure>
+    </div>
+
+    <div class="legend">
+      <span><i class="chip chip-p"></i> what we believed then</span>
+      <span><i class="chip chip-b"></i> what we believe now</span>
+      <span><i class="chip chip-s"></i> the moment we learned</span>
+    </div>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>Where the rectangles go</h2>
+    <p>DynamoDB has no notion of a rectangle. Each corner of that picture becomes one item, addressed
+      by a partition key and a sort key. The sort key is where both axes live:</p>
+
+    <div class="figframe scroll">
+      <figure>
+        <svg viewBox="0 0 820 250" role="img" aria-label="Anatomy of the sort key: a version prefix, then the processing-from timestamp, then the business-from timestamp. Because processing comes first, a business-date-only predicate matches a non-contiguous suffix and cannot be a native range condition.">
+          <rect x="40" y="46" width="60" height="44" rx="3" fill="none" stroke="currentColor" stroke-width="1.3"></rect>
+          <text x="70" y="73" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="currentColor">v1</text>
+
+          <rect x="108" y="46" width="300" height="44" rx="3" fill="var(--processing-bg)" stroke="var(--processing)" stroke-width="1.7"></rect>
+          <text x="258" y="66" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="currentColor">P#20260601000000000</text>
+          <text x="258" y="82" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="10.5" fill="var(--processing)">processing-from</text>
+
+          <rect x="416" y="46" width="300" height="44" rx="3" fill="var(--business-bg)" stroke="var(--business)" stroke-width="1.7"></rect>
+          <text x="566" y="66" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="currentColor">B#20260301000000000</text>
+          <text x="566" y="82" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="10.5" fill="var(--business)">business-from</text>
+
+          <text x="40" y="34" font-family="IBM Plex Mono, monospace" font-size="10" letter-spacing="1.2" fill="currentColor" opacity="0.55">SORT KEY</text>
+
+          <line x1="108" y1="112" x2="408" y2="112" stroke="var(--processing)" stroke-width="1.3"></line>
+          <line x1="108" y1="106" x2="108" y2="118" stroke="var(--processing)" stroke-width="1.3"></line>
+          <line x1="408" y1="106" x2="408" y2="118" stroke="var(--processing)" stroke-width="1.3"></line>
+          <text x="258" y="132" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="var(--processing)">a prefix — native range query</text>
+
+          <line x1="416" y1="112" x2="716" y2="112" stroke="var(--business)" stroke-width="1.3" stroke-dasharray="4 3"></line>
+          <line x1="416" y1="106" x2="416" y2="118" stroke="var(--business)" stroke-width="1.3"></line>
+          <line x1="716" y1="106" x2="716" y2="118" stroke="var(--business)" stroke-width="1.3"></line>
+          <text x="566" y="132" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="var(--business)">a suffix — cannot be a range condition</text>
+
+          <rect x="40" y="158" width="676" height="66" rx="3" fill="none" stroke="currentColor" stroke-width="1" opacity="0.45"></rect>
+          <text x="58" y="182" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="currentColor">Fixed-width, UTC, zero-padded — so byte order equals chronological order,</text>
+          <text x="58" y="202" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="currentColor">including before 1970, where a signed epoch offset would sort backwards.</text>
+        </svg>
+        <figcaption>Processing-major ordering is deliberate. It makes "every version of this row, newest
+          knowledge first" a single query — at the cost that a business-date-only predicate becomes a
+          filter rather than a range scan. The planner does that openly instead of pretending otherwise.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>Why the rules are the interesting part</h2>
+    <p>The clearest demonstration isn't a ledger — it's a decision table where <strong>the rules
+      themselves</strong> are bitemporal. Classify cars by year, make and body style. What counted as
+      cool in 2012 counts as retro now, and the car never changed:</p>
+
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Car</th>
+            <th class="mono">2012</th>
+            <th class="mono">2016</th>
+            <th class="mono">2021</th>
+            <th class="mono">today</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1985 Toyota MR2 coupe</td>
+            <td class="mono">COOL</td><td class="mono">EIGHTIES_COOL</td><td class="mono">RETRO</td><td class="mono">RETRO</td>
+          </tr>
+          <tr>
+            <td>1957 Chevrolet Bel Air coupe</td>
+            <td class="mono">CLASSIC</td><td class="mono">CLASSIC</td><td class="mono">CLASSIC</td><td class="mono">VINTAGE</td>
+          </tr>
+          <tr>
+            <td>2018 Tesla Model 3 sedan</td>
+            <td class="mono">—</td><td class="mono">—</td><td class="mono">MODERN</td><td class="mono">MODERN</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>That table is real output from a
+      <a href="https://github.com/drompincen/reladynamo/tree/main/demos/03-car-classifier">runnable demo</a>,
+      not an illustration. Every column is the same query against the same unchanged rows, asked as of a
+      different date.</p>
+    <p>Then the second axis earns its keep: correct a rule that was <em>wrong when it was written</em>,
+      re-run a 2012 classification, and it disagrees with the audit row stored in 2012. <strong>What we
+      said then</strong> versus <strong>what we now think we should have said then</strong> — two
+      different questions, both answerable, which is the entire reason this machinery exists.</p>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>What it costs</h2>
+    <p>Stated plainly, because discovering these in production is worse than reading them here. The
+      full list is the
+      <a href="https://github.com/drompincen/reladynamo/blob/main/docs/SUPPORT-CONTRACT.md">support contract</a>.</p>
+    <div class="scroll">
+      <table>
+        <tbody>
+          <tr><th style="width:34%">Transactions</th><td>DynamoDB has no interactive transaction. A Reladomo transaction commits as one <code>TransactWriteItems</code> across all entity tables, which caps at 100 actions and 4 MB; wider scopes are refused rather than chunked.</td></tr>
+          <tr><th>Arbitrary predicates</th><td>Queries start from an exact partition key. Anything else needs a Scan, which is opt-in — the planner refuses by default rather than running one quietly.</td></tr>
+          <tr><th>Item size</th><td>400 KB per item; 2048-byte partition key; 1024-byte sort key.</td></tr>
+          <tr><th>Decimals</th><td>Stored as strings. DynamoDB's numeric type trims trailing zeros, which would silently change the scale of money.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>

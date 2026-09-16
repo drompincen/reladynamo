@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>QuoteLineItem</ClassName>
+        <DefaultTable>QUOTE_LINE_ITEM</DefaultTable>
+        <AsOfAttribute name="businessDate" fromColumnName="BUSINESS_DATE_FROM" toColumnName="BUSINESS_DATE_THRU"
+                       toIsInclusive="false" isProcessingDate="false"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="lineId" javaType="long" columnName="LINE_ID" primaryKey="true"/>
+        <Attribute name="quoteId" javaType="long" columnName="QUOTE_ID"/>
+        <Attribute name="productId" javaType="long" columnName="PRODUCT_ID"/>
+        <Attribute name="quantity" javaType="int" columnName="QUANTITY"/>
+        <Attribute name="unitPrice" javaType="BigDecimal" columnName="UNIT_PRICE" precision="18" scale="2"/>
+        <Attribute name="discountPct" javaType="BigDecimal" columnName="DISCOUNT_PCT" precision="5" scale="2"/>
+        <Relationship name="quote" relatedObject="Quote" cardinality="many-to-one" reverseRelationshipName="lineItems">Quote.quoteId = this.quoteId</Relationship>
+        <Relationship name="product" relatedObject="Product" cardinality="many-to-one" reverseRelationshipName="quoteLineItems">Product.productId = this.productId</Relationship>
+</MithraObject>

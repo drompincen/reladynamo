@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>Opportunity</ClassName>
+        <DefaultTable>OPPORTUNITY</DefaultTable>
+        <AsOfAttribute name="businessDate" fromColumnName="BUSINESS_DATE_FROM" toColumnName="BUSINESS_DATE_THRU"
+                       toIsInclusive="false" isProcessingDate="false"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="opportunityId" javaType="long" columnName="OPPORTUNITY_ID" primaryKey="true"/>
+        <Attribute name="customerId" javaType="long" columnName="CUSTOMER_ID"/>
+        <Attribute name="name" javaType="String" columnName="NAME" maxLength="128"/>
+        <Attribute name="stageCode" javaType="String" columnName="STAGE_CODE" maxLength="32"/>
+        <Attribute name="amount" javaType="BigDecimal" columnName="AMOUNT" precision="18" scale="2"/>
+        <Attribute name="probability" javaType="int" columnName="PROBABILITY"/>
+        <Attribute name="expectedCloseDate" javaType="Timestamp" columnName="EXPECTED_CLOSE_DATE"/>
+        <Attribute name="ownerRepId" javaType="long" columnName="OWNER_REP_ID"/>
+        <Relationship name="customer" relatedObject="Customer" cardinality="many-to-one" reverseRelationshipName="opportunities">Customer.customerId = this.customerId</Relationship>
+        <Relationship name="stage" relatedObject="PipelineStage" cardinality="many-to-one" reverseRelationshipName="opportunities">PipelineStage.stageCode = this.stageCode</Relationship>
+        <Relationship name="ownerRep" relatedObject="SalesRep" cardinality="many-to-one" reverseRelationshipName="opportunities">SalesRep.repId = this.ownerRepId</Relationship>
+</MithraObject>

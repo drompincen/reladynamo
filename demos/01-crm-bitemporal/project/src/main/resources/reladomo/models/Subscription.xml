@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>Subscription</ClassName>
+        <DefaultTable>SUBSCRIPTION</DefaultTable>
+        <AsOfAttribute name="businessDate" fromColumnName="BUSINESS_DATE_FROM" toColumnName="BUSINESS_DATE_THRU"
+                       toIsInclusive="false" isProcessingDate="false"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="subscriptionId" javaType="long" columnName="SUBSCRIPTION_ID" primaryKey="true"/>
+        <Attribute name="contractId" javaType="long" columnName="CONTRACT_ID"/>
+        <Attribute name="productId" javaType="long" columnName="PRODUCT_ID"/>
+        <Attribute name="seats" javaType="int" columnName="SEATS"/>
+        <Attribute name="mrr" javaType="BigDecimal" columnName="MRR" precision="18" scale="2"/>
+        <Attribute name="billingCycle" javaType="String" columnName="BILLING_CYCLE" maxLength="32"/>
+        <Relationship name="contract" relatedObject="Contract" cardinality="many-to-one" reverseRelationshipName="subscriptions">Contract.contractId = this.contractId</Relationship>
+        <Relationship name="product" relatedObject="Product" cardinality="many-to-one" reverseRelationshipName="subscriptions">Product.productId = this.productId</Relationship>
+</MithraObject>

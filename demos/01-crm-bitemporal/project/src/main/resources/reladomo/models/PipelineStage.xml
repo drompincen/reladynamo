@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>PipelineStage</ClassName>
+        <DefaultTable>PIPELINE_STAGE</DefaultTable>
+        <Attribute name="stageCode" javaType="String" columnName="STAGE_CODE" primaryKey="true" maxLength="32"/>
+        <Attribute name="name" javaType="String" columnName="NAME" maxLength="128"/>
+        <Attribute name="sortOrder" javaType="int" columnName="SORT_ORDER"/>
+        <Attribute name="isClosed" javaType="boolean" columnName="IS_CLOSED"/>
+        <Attribute name="isWon" javaType="boolean" columnName="IS_WON"/>
+</MithraObject>

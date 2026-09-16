@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MithraObject objectType="transactional" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <PackageName>io.reladynamo.ddb.differential.domain</PackageName>
+    <ClassName>DiffBalance</ClassName>
+    <DefaultTable>DIFF_BALANCE</DefaultTable>
+
+    <AsOfAttribute name="businessDate" fromColumnName="FROM_Z" toColumnName="THRU_Z"
+                   toIsInclusive="false" isProcessingDate="false" futureExpiringRowsExist="true"
+                   infinityDate="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"/>
+    <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                   toIsInclusive="false" isProcessingDate="true"
+                   infinityDate="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"
+                   defaultIfNotSpecified="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"/>
+
+    <Attribute name="balanceId" javaType="int" columnName="BALANCE_ID" primaryKey="true"/>
+    <Attribute name="quantity" javaType="double" columnName="QUANTITY" nullable="false"/>
+    <Attribute name="label" javaType="String" columnName="LABEL" maxLength="64" nullable="false"/>
+    <!-- inPlaceUpdate is not a method on the generated dated object; Reladomo selects
+         TemporalDirector.inPlaceUpdate when this flag is set on an attribute. -->
+    <Attribute name="note" javaType="String" columnName="NOTE" maxLength="64" nullable="true" inPlaceUpdate="true"/>
+
+    <Relationship name="entries" relatedObject="DiffEntry" cardinality="one-to-many"
+                  reverseRelationshipName="balance">
+        DiffEntry.balanceId = this.balanceId
+    </Relationship>
+</MithraObject>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>CaseComment</ClassName>
+        <DefaultTable>CASE_COMMENT</DefaultTable>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="commentId" javaType="long" columnName="COMMENT_ID" primaryKey="true"/>
+        <Attribute name="caseId" javaType="long" columnName="CASE_ID"/>
+        <Attribute name="authorRepId" javaType="long" columnName="AUTHOR_REP_ID"/>
+        <Attribute name="body" javaType="String" columnName="BODY" maxLength="4000"/>
+        <Attribute name="createdTime" javaType="Timestamp" columnName="CREATED_TIME"/>
+        <Attribute name="isPublic" javaType="boolean" columnName="IS_PUBLIC"/>
+        <Relationship name="supportCase" relatedObject="SupportCase" cardinality="many-to-one" reverseRelationshipName="comments">SupportCase.caseId = this.caseId</Relationship>
+        <Relationship name="authorRep" relatedObject="SalesRep" cardinality="many-to-one" reverseRelationshipName="caseComments">SalesRep.repId = this.authorRepId</Relationship>
+</MithraObject>

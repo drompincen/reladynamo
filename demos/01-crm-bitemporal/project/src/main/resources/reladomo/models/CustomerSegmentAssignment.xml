@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>CustomerSegmentAssignment</ClassName>
+        <DefaultTable>CUSTOMER_SEGMENT_ASSIGNMENT</DefaultTable>
+        <AsOfAttribute name="businessDate" fromColumnName="BUSINESS_DATE_FROM" toColumnName="BUSINESS_DATE_THRU"
+                       toIsInclusive="false" isProcessingDate="false"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="assignmentId" javaType="long" columnName="ASSIGNMENT_ID" primaryKey="true"/>
+        <Attribute name="customerId" javaType="long" columnName="CUSTOMER_ID"/>
+        <Attribute name="segmentCode" javaType="String" columnName="SEGMENT_CODE" maxLength="32"/>
+        <Attribute name="assignedReason" javaType="String" columnName="ASSIGNED_REASON" maxLength="256"/>
+        <Relationship name="customer" relatedObject="Customer" cardinality="many-to-one" reverseRelationshipName="segmentAssignments">Customer.customerId = this.customerId</Relationship>
+        <Relationship name="segment" relatedObject="CustomerSegment" cardinality="many-to-one" reverseRelationshipName="assignments">CustomerSegment.segmentCode = this.segmentCode</Relationship>
+</MithraObject>

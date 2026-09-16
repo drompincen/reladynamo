@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MithraObject objectType="transactional" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <PackageName>io.reladynamo.ddb.differential.domain</PackageName>
+    <ClassName>DiffFinderValue</ClassName>
+    <DefaultTable>DIFF_FINDER_VALUE</DefaultTable>
+
+    <!-- Composite PK declared in scopeId then rowId order. scopeId is an ordinary domain key,
+         not Reladomo source routing. Temporal flavour: NONE. -->
+    <Attribute name="scopeId" javaType="int" columnName="SCOPE_ID" primaryKey="true"/>
+    <Attribute name="rowId" javaType="int" columnName="ROW_ID" primaryKey="true"/>
+    <Attribute name="bucketId" javaType="int" columnName="BUCKET_ID" nullable="false"/>
+    <Attribute name="intValue" javaType="int" columnName="INT_VALUE" nullable="true"/>
+    <Attribute name="longValue" javaType="long" columnName="LONG_VALUE" nullable="true"/>
+    <Attribute name="doubleValue" javaType="double" columnName="DOUBLE_VALUE" nullable="true"/>
+    <Attribute name="floatValue" javaType="float" columnName="FLOAT_VALUE" nullable="true"/>
+    <Attribute name="decimalValue" javaType="BigDecimal" columnName="DECIMAL_VALUE" precision="30" scale="4" nullable="true"/>
+    <Attribute name="textValue" javaType="String" columnName="TEXT_VALUE" maxLength="128" nullable="true"/>
+    <Attribute name="booleanValue" javaType="boolean" columnName="BOOLEAN_VALUE" nullable="true"/>
+    <Attribute name="timestampValue" javaType="Timestamp" columnName="TIMESTAMP_VALUE" nullable="true"/>
+    <Attribute name="bytesValue" javaType="byte[]" columnName="BYTES_VALUE" nullable="true"/>
+</MithraObject>

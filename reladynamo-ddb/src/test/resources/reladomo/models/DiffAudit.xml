@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MithraObject objectType="transactional" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <PackageName>io.reladynamo.ddb.differential.domain</PackageName>
+    <ClassName>DiffAudit</ClassName>
+    <DatedTransactionalTemporalDirector>com.gs.fw.common.mithra.behavior.AuditOnlyTemporalDirector</DatedTransactionalTemporalDirector>
+    <DefaultTable>DIFF_AUDIT</DefaultTable>
+
+    <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                   toIsInclusive="false" isProcessingDate="true"
+                   infinityDate="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"
+                   defaultIfNotSpecified="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"/>
+
+    <Attribute name="auditId" javaType="int" columnName="AUDIT_ID" primaryKey="true"/>
+    <Attribute name="quantity" javaType="double" columnName="QUANTITY" nullable="false"/>
+    <Attribute name="label" javaType="String" columnName="LABEL" maxLength="64" nullable="false"/>
+    <Attribute name="note" javaType="String" columnName="NOTE" maxLength="64" nullable="true" inPlaceUpdate="true"/>
+</MithraObject>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+
+    <PackageName>com.reladynamo.demo.classifier.domain</PackageName>
+    <ClassName>Car</ClassName>
+    <DefaultTable>CAR</DefaultTable>
+
+    <Attribute name="carId" javaType="int" columnName="CAR_ID" primaryKey="true"/>
+    <Attribute name="year" javaType="int" columnName="CAR_YEAR" nullable="false"/>
+    <Attribute name="make" javaType="String" columnName="MAKE" maxLength="64" nullable="false"/>
+    <Attribute name="model" javaType="String" columnName="MODEL" maxLength="64" nullable="false"/>
+    <Attribute name="wheelCount" javaType="int" columnName="WHEEL_COUNT" nullable="false"/>
+    <Attribute name="colorCode" javaType="String" columnName="COLOR_CODE" maxLength="32" nullable="false"/>
+    <Attribute name="bodyStyle" javaType="String" columnName="BODY_STYLE" maxLength="32" nullable="false"/>
+    <Attribute name="engineCode" javaType="String" columnName="ENGINE_CODE" maxLength="32" nullable="false"/>
+</MithraObject>

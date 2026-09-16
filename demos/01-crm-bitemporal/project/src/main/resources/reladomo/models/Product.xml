@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>Product</ClassName>
+        <DefaultTable>PRODUCT</DefaultTable>
+        <Attribute name="productId" javaType="long" columnName="PRODUCT_ID" primaryKey="true"/>
+        <Attribute name="sku" javaType="String" columnName="SKU" maxLength="64"/>
+        <Attribute name="name" javaType="String" columnName="NAME" maxLength="128"/>
+        <Attribute name="productFamily" javaType="String" columnName="PRODUCT_FAMILY" maxLength="64"/>
+        <Attribute name="isActive" javaType="boolean" columnName="IS_ACTIVE"/>
+</MithraObject>

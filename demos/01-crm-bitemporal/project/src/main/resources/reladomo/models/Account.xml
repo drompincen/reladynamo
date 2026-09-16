@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>Account</ClassName>
+        <DefaultTable>ACCOUNT</DefaultTable>
+        <AsOfAttribute name="businessDate" fromColumnName="BUSINESS_DATE_FROM" toColumnName="BUSINESS_DATE_THRU"
+                       toIsInclusive="false" isProcessingDate="false"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="accountId" javaType="long" columnName="ACCOUNT_ID" primaryKey="true"/>
+        <Attribute name="customerId" javaType="long" columnName="CUSTOMER_ID"/>
+        <Attribute name="accountNumber" javaType="String" columnName="ACCOUNT_NUMBER" maxLength="64"/>
+        <Attribute name="accountType" javaType="String" columnName="ACCOUNT_TYPE" maxLength="32"/>
+        <Attribute name="openedDate" javaType="Timestamp" columnName="OPENED_DATE"/>
+        <Attribute name="closedDate" javaType="Timestamp" columnName="CLOSED_DATE" nullable="true"/>
+        <Attribute name="creditLimit" javaType="BigDecimal" columnName="CREDIT_LIMIT" precision="18" scale="2"/>
+        <Attribute name="currency" javaType="String" columnName="CURRENCY" maxLength="3"/>
+        <Relationship name="customer" relatedObject="Customer" cardinality="many-to-one" reverseRelationshipName="accounts">Customer.customerId = this.customerId</Relationship>
+</MithraObject>

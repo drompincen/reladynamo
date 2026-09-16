@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional" disableForeignKeys="true"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="mithraobject.xsd">
+    <PackageName>com.reladynamo.demo.petstore.domain</PackageName>
+    <ClassName>PurchaseOrder</ClassName>
+        <DatedTransactionalTemporalDirector>com.gs.fw.common.mithra.behavior.AuditOnlyTemporalDirector</DatedTransactionalTemporalDirector>
+    <DefaultTable>PURCHASE_ORDER</DefaultTable>
+    <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                   toIsInclusive="false" isProcessingDate="true"
+                   infinityDate="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"
+                   defaultIfNotSpecified="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"
+                   timezoneConversion="convert-to-utc"/>
+    <Attribute name="poId" javaType="long" columnName="PO_ID" primaryKey="true" nullable="false"/>
+    <Attribute name="supplierId" javaType="long" columnName="SUPPLIER_ID"/>
+    <Attribute name="orderedTime" javaType="Timestamp" columnName="ORDERED_TIME"/>
+    <Attribute name="expectedDate" javaType="Timestamp" columnName="EXPECTED_DATE"/>
+    <Attribute name="status" javaType="String" columnName="STATUS" maxLength="32"/>
+    <Relationship name="supplier" relatedObject="Supplier" cardinality="many-to-one" reverseRelationshipName="purchaseOrders" foreignKey="false">Supplier.supplierId = this.supplierId</Relationship>
+    <Relationship name="lines" relatedObject="PurchaseOrderLine" cardinality="one-to-many" reverseRelationshipName="purchaseOrder" foreignKey="false">PurchaseOrderLine.poId = this.poId</Relationship>
+    <Relationship name="shipments" relatedObject="Shipment" cardinality="one-to-many" reverseRelationshipName="purchaseOrder" foreignKey="false">Shipment.poId = this.poId</Relationship>
+
+</MithraObject>

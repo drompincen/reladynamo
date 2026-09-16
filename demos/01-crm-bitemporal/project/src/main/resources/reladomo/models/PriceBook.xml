@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>PriceBook</ClassName>
+        <DefaultTable>PRICE_BOOK</DefaultTable>
+        <Attribute name="priceBookId" javaType="long" columnName="PRICE_BOOK_ID" primaryKey="true"/>
+        <Attribute name="name" javaType="String" columnName="NAME" maxLength="128"/>
+        <Attribute name="currency" javaType="String" columnName="CURRENCY" maxLength="3"/>
+        <Attribute name="isStandard" javaType="boolean" columnName="IS_STANDARD"/>
+</MithraObject>

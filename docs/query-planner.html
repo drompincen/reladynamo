@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Planning a Bitemporal Query · Reladynamo</title>
+<meta name="description" content="How Reladynamo turns an arbitrary Reladomo predicate into DynamoDB key conditions, filters, in-memory residuals, or a refusal.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  :root {
+    color-scheme: light dark;
+    --ground:#F6F7F9; --surface:#FFFFFF; --ink:#16202E; --ink-soft:#55616F;
+    --rule:#D8DDE4; --rule-soft:#E8ECF1;
+    --key:#1B6470;     --key-bg:#E2EFF1;      /* consumed as a key condition */
+    --filter:#A8661B;  --filter-bg:#F7EEE1;   /* pushed down as a filter */
+    --resid:#5A4B8A;   --resid-bg:#ECE8F5;    /* evaluated in memory */
+    --refuse:#9C2F49;  --refuse-bg:#F8E7EB;   /* refused outright */
+    --code-bg:#EDF0F4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:#10161F; --surface:#172230; --ink:#E4E9EF; --ink-soft:#9BA8B7;
+      --rule:#2C3A4B; --rule-soft:#222E3D;
+      --key:#5FB8C6; --key-bg:#122C31;
+      --filter:#E0A65A; --filter-bg:#2E2415;
+      --resid:#A79AD4; --resid-bg:#221E33;
+      --refuse:#E8809A; --refuse-bg:#331A22;
+      --code-bg:#1B2735;
+    }
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; padding-block:2rem 6rem; padding-left:1.25rem; padding-right:1.25rem;
+    background:var(--ground); color:var(--ink);
+    font-family:"Source Serif 4",Georgia,serif; font-size:1.0625rem; line-height:1.65;
+  }
+  .wrap { max-width:44rem; margin:0 auto; display:flex; flex-direction:column; gap:2.75rem; }
+  .crumbs { font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.85rem;
+    display:flex; flex-wrap:wrap; gap:.4rem 1.2rem; margin-bottom:-1rem; }
+  .eyebrow { font-family:"IBM Plex Mono",monospace; font-size:.72rem; letter-spacing:.13em;
+    text-transform:uppercase; color:var(--ink-soft); margin:0 0 .5rem; }
+  h1 { font-family:"IBM Plex Sans",system-ui,sans-serif; font-weight:700;
+    font-size:clamp(2rem,6vw,2.9rem); line-height:1.08; letter-spacing:-.02em;
+    margin:0 0 .75rem; text-wrap:balance; }
+  h2 { font-family:"IBM Plex Sans",system-ui,sans-serif; font-weight:600; font-size:1.4rem;
+    line-height:1.2; letter-spacing:-.01em; margin:0 0 .6rem; text-wrap:balance; }
+  p { margin:0 0 1rem; } p:last-child { margin-bottom:0; }
+  .lede { font-size:1.2rem; line-height:1.55; color:var(--ink-soft); margin:0; }
+  code { font-family:"IBM Plex Mono",monospace; font-size:.85em; background:var(--code-bg);
+    padding:.12em .35em; border-radius:3px; }
+  section { display:flex; flex-direction:column; gap:.9rem; }
+  figure { margin:0; display:flex; flex-direction:column; gap:.7rem; }
+  figure svg { display:block; width:100%; max-width:100%; height:auto; }
+  figcaption { font-family:"IBM Plex Sans",sans-serif; font-size:.86rem; line-height:1.5;
+    color:var(--ink-soft); border-left:2px solid var(--rule); padding-left:.8rem; }
+  .figframe { background:var(--surface); border:1px solid var(--rule-soft); border-radius:4px;
+    padding:1.25rem 1rem; }
+  .scroll { overflow-x:auto; }
+  hr.keyline { border:0; border-top:1px solid var(--rule); margin:0; }
+  table { border-collapse:collapse; width:100%; font-family:"IBM Plex Sans",sans-serif; font-size:.88rem; }
+  th,td { text-align:left; padding:.5rem .7rem; border-bottom:1px solid var(--rule-soft); vertical-align:top; }
+  th { font-weight:600; font-size:.72rem; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-soft); }
+  td.mono { font-family:"IBM Plex Mono",monospace; }
+  .legend { display:flex; flex-wrap:wrap; gap:1rem 1.4rem; font-family:"IBM Plex Sans",sans-serif;
+    font-size:.8rem; color:var(--ink-soft); }
+  .legend span { display:inline-flex; align-items:center; gap:.45rem; }
+  .chip { width:.85rem; height:.85rem; border-radius:2px; flex:none; }
+  .c-key{background:var(--key-bg);border:1.5px solid var(--key);}
+  .c-filter{background:var(--filter-bg);border:1.5px solid var(--filter);}
+  .c-resid{background:var(--resid-bg);border:1.5px solid var(--resid);}
+  .c-refuse{background:var(--refuse-bg);border:1.5px solid var(--refuse);}
+  .callout { background:var(--refuse-bg); border-left:3px solid var(--refuse);
+    padding:.9rem 1.1rem; border-radius:0 3px 3px 0; }
+  .callout p { font-size:.98rem; }
+  a { color:var(--key); }
+  :focus-visible { outline:2px solid var(--key); outline-offset:2px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <nav class="crumbs" aria-label="Site">
+    <a href="./">← Reladynamo docs</a>
+    <a href="bitemporal-seam.html">Previous: the bitemporal seam</a>
+    <a href="https://github.com/drompincen/reladynamo">GitHub</a>
+  </nav>
+
+  <header>
+    <p class="eyebrow">Reladynamo · the query planner</p>
+    <h1>Planning a bitemporal query</h1>
+    <p class="lede">Reladomo hands you an arbitrary boolean predicate. DynamoDB answers one shape of
+      question. Everything interesting happens in the gap.</p>
+  </header>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>What DynamoDB will actually answer</h2>
+    <p>A DynamoDB query starts from <strong>one exact partition-key value</strong>. From there it can
+      narrow by a sort-key condition, then discard rows with a filter — but the filter runs
+      <em>after</em> the read, so you pay for every row it throws away.</p>
+    <p>An ORM predicate has no such shape. <code>ruleId in (2,3) and priority &gt; 5 and
+      businessDate = X</code> is perfectly ordinary and maps onto three different mechanisms. The
+      planner's whole job is deciding which node goes where — and refusing when nothing fits.</p>
+
+    <div class="figframe scroll">
+      <figure>
+        <svg viewBox="0 0 820 380" role="img" aria-label="An operation tree whose nodes are classified four ways: ruleId equality becomes the partition key condition, the businessDate as-of becomes a sort key condition, priority greater-than becomes a filter expression, and a startsWith becomes an in-memory residual predicate.">
+          <defs>
+            <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill="currentColor"></path>
+            </marker>
+          </defs>
+
+          <text x="20" y="22" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="1.3" fill="currentColor" opacity="0.55">OPERATION TREE</text>
+          <rect x="20" y="34" width="330" height="30" rx="3" fill="none" stroke="currentColor" stroke-width="1.2"></rect>
+          <text x="34" y="54" font-family="IBM Plex Mono, monospace" font-size="12" fill="currentColor">AND</text>
+
+          <rect x="46" y="76" width="304" height="30" rx="3" fill="var(--key-bg)" stroke="var(--key)" stroke-width="1.6"></rect>
+          <text x="60" y="96" font-family="IBM Plex Mono, monospace" font-size="11.5" fill="currentColor">ruleId = 12</text>
+
+          <rect x="46" y="112" width="304" height="30" rx="3" fill="var(--key-bg)" stroke="var(--key)" stroke-width="1.6"></rect>
+          <text x="60" y="132" font-family="IBM Plex Mono, monospace" font-size="11.5" fill="currentColor">processingDate = ∞</text>
+
+          <rect x="46" y="148" width="304" height="30" rx="3" fill="var(--filter-bg)" stroke="var(--filter)" stroke-width="1.6"></rect>
+          <text x="60" y="168" font-family="IBM Plex Mono, monospace" font-size="11.5" fill="currentColor">priority &gt; 5</text>
+
+          <rect x="46" y="184" width="304" height="30" rx="3" fill="var(--resid-bg)" stroke="var(--resid)" stroke-width="1.6"></rect>
+          <text x="60" y="204" font-family="IBM Plex Mono, monospace" font-size="11.5" fill="currentColor">ruleName startsWith "r"</text>
+
+          <rect x="46" y="220" width="304" height="30" rx="3" fill="var(--filter-bg)" stroke="var(--filter)" stroke-width="1.6"></rect>
+          <text x="60" y="240" font-family="IBM Plex Mono, monospace" font-size="11.5" fill="currentColor">businessDate = 2026-06-01</text>
+
+          <line x1="360" y1="91" x2="470" y2="91" stroke="currentColor" stroke-width="1.2" marker-end="url(#a)"></line>
+          <line x1="360" y1="127" x2="470" y2="112" stroke="currentColor" stroke-width="1.2" marker-end="url(#a)"></line>
+          <line x1="360" y1="163" x2="470" y2="180" stroke="currentColor" stroke-width="1.2" marker-end="url(#a)"></line>
+          <line x1="360" y1="199" x2="470" y2="248" stroke="currentColor" stroke-width="1.2" marker-end="url(#a)"></line>
+          <line x1="360" y1="235" x2="470" y2="196" stroke="currentColor" stroke-width="1.2" marker-end="url(#a)"></line>
+
+          <text x="480" y="22" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="1.3" fill="currentColor" opacity="0.55">WHERE IT LANDS</text>
+
+          <rect x="480" y="70" width="320" height="44" rx="3" fill="var(--key-bg)" stroke="var(--key)" stroke-width="1.8"></rect>
+          <text x="494" y="88" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--key)">key condition</text>
+          <text x="494" y="105" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.8">pk = … and begins_with(sk, …)</text>
+
+          <rect x="480" y="158" width="320" height="44" rx="3" fill="var(--filter-bg)" stroke="var(--filter)" stroke-width="1.8"></rect>
+          <text x="494" y="176" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--filter)">filter expression</text>
+          <text x="494" y="193" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.8">read and discarded — still billed</text>
+
+          <rect x="480" y="226" width="320" height="44" rx="3" fill="var(--resid-bg)" stroke="var(--resid)" stroke-width="1.8"></rect>
+          <text x="494" y="244" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--resid)">residual, in memory</text>
+          <text x="494" y="261" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.8">DynamoDB cannot express it</text>
+
+          <rect x="480" y="294" width="320" height="44" rx="3" fill="var(--refuse-bg)" stroke="var(--refuse)" stroke-width="1.8" stroke-dasharray="4 3"></rect>
+          <text x="494" y="312" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--refuse)">refused</text>
+          <text x="494" y="329" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.8">no partition key ⇒ Scan ⇒ throw</text>
+        </svg>
+        <figcaption>Note where <code>businessDate</code> lands. It is an as-of predicate, yet it becomes
+          a <em>filter</em>, not a key condition — the reason is the next diagram.</figcaption>
+      </figure>
+    </div>
+
+    <div class="legend">
+      <span><i class="chip c-key"></i> key condition</span>
+      <span><i class="chip c-filter"></i> filter expression</span>
+      <span><i class="chip c-resid"></i> in-memory residual</span>
+      <span><i class="chip c-refuse"></i> refused</span>
+    </div>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>Why business date can't be a range scan</h2>
+    <p>The sort key is <strong>processing-major</strong>: <code>v1#P#&lt;processing&gt;#B#&lt;business&gt;</code>.
+      DynamoDB compares sort keys as byte strings from the left, so a prefix is queryable and a suffix
+      is not.</p>
+
+    <div class="figframe scroll">
+      <figure>
+        <svg viewBox="0 0 820 200" role="img" aria-label="Three sort keys sharing no common processing prefix. The business component sits at the end of each key, at different byte offsets, so no single range condition can select on it.">
+          <text x="20" y="24" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="1.3" fill="currentColor" opacity="0.55">THREE ROWS, SAME BUSINESS DATE</text>
+
+          <rect x="20" y="38" width="240" height="30" rx="2" fill="var(--key-bg)" stroke="var(--key)" stroke-width="1.4"></rect>
+          <text x="32" y="58" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">P#2020030112…</text>
+          <rect x="264" y="38" width="240" height="30" rx="2" fill="var(--filter-bg)" stroke="var(--filter)" stroke-width="1.4"></rect>
+          <text x="276" y="58" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">B#20260601000</text>
+
+          <rect x="20" y="76" width="240" height="30" rx="2" fill="var(--key-bg)" stroke="var(--key)" stroke-width="1.4"></rect>
+          <text x="32" y="96" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">P#2024071409…</text>
+          <rect x="264" y="76" width="240" height="30" rx="2" fill="var(--filter-bg)" stroke="var(--filter)" stroke-width="1.4"></rect>
+          <text x="276" y="96" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">B#20260601000</text>
+
+          <rect x="20" y="114" width="240" height="30" rx="2" fill="var(--key-bg)" stroke="var(--key)" stroke-width="1.4"></rect>
+          <text x="32" y="134" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">P#2026091300…</text>
+          <rect x="264" y="114" width="240" height="30" rx="2" fill="var(--filter-bg)" stroke="var(--filter)" stroke-width="1.4"></rect>
+          <text x="276" y="134" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">B#20260601000</text>
+
+          <line x1="520" y1="38" x2="520" y2="144" stroke="var(--filter)" stroke-width="1.4" stroke-dasharray="4 3"></line>
+          <text x="534" y="80" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--filter)">identical business date</text>
+          <text x="534" y="99" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="var(--ink-soft)">scattered across the key space</text>
+          <text x="534" y="118" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="var(--ink-soft)">— no contiguous range holds them</text>
+
+          <text x="20" y="176" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="currentColor">Processing-major buys "every version of this row, newest knowledge first" as one query.</text>
+          <text x="20" y="194" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="currentColor">It costs the symmetric query on business date. That trade is deliberate, and stated.</text>
+        </svg>
+        <figcaption>Serving a business-date access pattern by index needs a secondary index, and the only
+          GSI shape with evidence behind it today is a foreign-key index with an <code>ALL</code>
+          projection — see the
+          <a href="https://github.com/drompincen/reladynamo/blob/main/docs/SUPPORT-CONTRACT.md">support contract</a>.
+          The planner does not pretend the base table can serve it.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>The contradiction that returns nothing</h2>
+    <p>An adversarial test generator found this one. <code>ruleId in (2,3) and ruleId = 1</code> is
+      unsatisfiable — but a planner that consumes <code>ruleId = 1</code> as the partition key and
+      forgets the rest will happily fetch row 1 and return it.</p>
+    <p>The fix was not to keep the dropped predicate as a filter. It was to convert the tree to
+      disjunctive normal form, plan each conjunction independently, and give the planner a fifth
+      outcome:</p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Plan kind</th><th>When</th><th>Calls issued</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">GET_ITEM</td><td>full key known</td><td class="mono">1</td></tr>
+          <tr><td class="mono">QUERY</td><td>one partition key</td><td class="mono">1 + pages</td></tr>
+          <tr><td class="mono">QUERY_FAN_OUT</td><td>OR across keys, capped at 100 by default</td><td class="mono">n</td></tr>
+          <tr><td class="mono">SCAN</td><td>opt-in only, else refused</td><td class="mono">whole table</td></tr>
+          <tr><td class="mono">EMPTY</td><td><strong>provably unsatisfiable</strong></td><td class="mono">0</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><code>EMPTY</code> issues no call at all. That is a correctness result, not an optimisation:
+      the executor asserts it never touches DynamoDB, because sending a query anyway would suggest the
+      verdict is advisory.</p>
+
+    <div class="callout">
+      <p><strong>Why refusing matters more than optimising.</strong> A silent Scan does not fail — it
+        returns correct rows, slowly, at rising cost, until the table is large enough that it doesn't.
+        So a missing partition key throws by default, and running a Scan is a decision someone has to
+        make in configuration and can be found later in review.</p>
+    </div>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>The path that actually matters</h2>
+    <p>Almost every real Reladomo query is "the current row for this key": <code>businessDate = X</code>
+      and <code>processingDate = ∞</code>. If that path is slow, nothing else about the planner
+      matters. It gets a named fast path — <code>FAST_PATH_CURRENT_ASOF</code>, or
+      <code>FAST_PATH_POINT_GET</code> when the whole key is known and a single <code>GetItem</code>
+      will do.</p>
+    <p>Every plan also carries an explain output — chosen index, key condition, residual predicates,
+      items scanned versus returned. Tests assert against it, so a query that quietly degrades into
+      scanning ten thousand items to return three fails the build rather than the budget.</p>
+  </section>
+
+</div>
+
+</body>
+</html>

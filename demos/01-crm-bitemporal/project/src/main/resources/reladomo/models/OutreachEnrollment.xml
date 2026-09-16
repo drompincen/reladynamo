@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+        <PackageName>com.reladynamo.demo.crm.domain</PackageName>
+        <ClassName>OutreachEnrollment</ClassName>
+        <DefaultTable>OUTREACH_ENROLLMENT</DefaultTable>
+        <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                       toIsInclusive="false" isProcessingDate="true"
+                       infinityDate="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"
+                       defaultIfNotSpecified="[com.reladynamo.demo.crm.util.InfinityTimestamp.getInfinityDate()]"/>
+        <Attribute name="enrollmentId" javaType="long" columnName="ENROLLMENT_ID" primaryKey="true"/>
+        <Attribute name="sequenceId" javaType="long" columnName="SEQUENCE_ID"/>
+        <Attribute name="contactId" javaType="long" columnName="CONTACT_ID"/>
+        <Attribute name="enrolledTime" javaType="Timestamp" columnName="ENROLLED_TIME"/>
+        <Attribute name="currentStepNumber" javaType="int" columnName="CURRENT_STEP_NUMBER"/>
+        <Attribute name="status" javaType="String" columnName="STATUS" maxLength="32"/>
+        <Relationship name="sequence" relatedObject="OutreachSequence" cardinality="many-to-one" reverseRelationshipName="enrollments">OutreachSequence.sequenceId = this.sequenceId</Relationship>
+        <Relationship name="contact" relatedObject="Contact" cardinality="many-to-one" reverseRelationshipName="enrollments">Contact.contactId = this.contactId</Relationship>
+</MithraObject>

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.reladynamo</groupId>
+    <artifactId>reladynamo-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>reladynamo-core</artifactId>
+  <name>Reladynamo :: Core</name>
+  <dependencies>
+    <dependency>
+      <groupId>com.goldmansachs.reladomo</groupId>
+      <artifactId>reladomo</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>net.jqwik</groupId>
+      <artifactId>jqwik</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Planner tests need REAL Reladomo Operation trees, and real trees need fully initialised
+         portals (cache, metadata, index refs). A stub portal loses that whack-a-mole. -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- The planner's tests need real Reladomo Operation trees, which means real generated
+           finders. Generating three small fixture objects here keeps the planner tests honest:
+           they exercise the actual Operation classes rather than hand-rolled stand-ins. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <id>reladomogen-test-fixtures</id>
+            <phase>generate-test-sources</phase>
+            <goals><goal>run</goal></goals>
+            <configuration>
+              <target>
+                <taskdef name="gen"
+                         classname="com.gs.fw.common.mithra.generator.MithraGenerator"
+                         classpathref="maven.plugin.classpath"/>
+                <gen xml="${project.basedir}/src/test/resources/reladomo/models/ReladomoClassList.xml"
+                     generatedDir="${project.build.directory}/generated-test-sources/reladomo"
+                     nonGeneratedDir="${project.basedir}/src/test/java"/>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>com.goldmansachs.reladomo</groupId>
+            <artifactId>reladomogen</artifactId>
+            <version>${reladomo.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.5.0</version>
+        <executions>
+          <execution>
+            <id>add-generated-test-sources</id>
+            <phase>generate-test-sources</phase>
+            <goals><goal>add-test-source</goal></goals>
+            <configuration>
+              <sources><source>${project.build.directory}/generated-test-sources/reladomo</source></sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="reladomoobject.xsd">
+
+    <PackageName>com.reladynamo.demo.classifier.domain</PackageName>
+    <ClassName>ResultLabel</ClassName>
+    <DefaultTable>RESULT_LABEL</DefaultTable>
+
+    <Attribute name="labelCode" javaType="String" columnName="LABEL_CODE" primaryKey="true" maxLength="32"/>
+    <Attribute name="displayName" javaType="String" columnName="DISPLAY_NAME" maxLength="64" nullable="false"/>
+    <Attribute name="description" javaType="String" columnName="DESCRIPTION" maxLength="256" nullable="false"/>
+</MithraObject>

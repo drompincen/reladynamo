@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<MithraObject objectType="transactional" disableForeignKeys="true"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="mithraobject.xsd">
+    <PackageName>com.reladynamo.demo.petstore.domain</PackageName>
+    <ClassName>Vaccination</ClassName>
+        <DatedTransactionalTemporalDirector>com.gs.fw.common.mithra.behavior.AuditOnlyTemporalDirector</DatedTransactionalTemporalDirector>
+    <DefaultTable>VACCINATION</DefaultTable>
+    <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                   toIsInclusive="false" isProcessingDate="true"
+                   infinityDate="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"
+                   defaultIfNotSpecified="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"
+                   timezoneConversion="convert-to-utc"/>
+    <Attribute name="vaccinationId" javaType="long" columnName="VACCINATION_ID" primaryKey="true" nullable="false"/>
+    <Attribute name="petId" javaType="long" columnName="PET_ID"/>
+    <Attribute name="vaccineCode" javaType="String" columnName="VACCINE_CODE" maxLength="32"/>
+    <Attribute name="administeredTime" javaType="Timestamp" columnName="ADMINISTERED_TIME"/>
+    <Attribute name="batchNumber" javaType="String" columnName="BATCH_NUMBER" maxLength="64"/>
+    <Attribute name="nextDueDate" javaType="Timestamp" columnName="NEXT_DUE_DATE"/>
+
+</MithraObject>

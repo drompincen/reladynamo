@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MithraRuntime xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:noNamespaceSchemaLocation="mithraruntime.xsd">
+    <ConnectionManager className="com.reladynamo.demo.petstore.runtime.H2PetstoreConnectionManager">
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.Pet" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.Species" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.Breed" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.Kennel" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.FeedingSchedule" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.VeterinaryVisit" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.Vaccination" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.GroomingAppointment" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.Product" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.ProductCategory" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.StockLevel" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.SalesOrder" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.SalesOrderLine" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.Payment" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.PurchaseOrder" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.PurchaseOrderLine" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.Shipment" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.PetOwner" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.Adoption" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.Employee" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.Store" cacheType="partial"/>
+        <MithraObjectConfiguration className="com.reladynamo.demo.petstore.domain.Supplier" cacheType="partial"/>
+    </ConnectionManager>
+</MithraRuntime>
