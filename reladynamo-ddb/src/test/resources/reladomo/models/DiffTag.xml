@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MithraObject objectType="transactional" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <PackageName>io.reladynamo.ddb.differential.domain</PackageName>
+    <ClassName>DiffTag</ClassName>
+    <DefaultTable>DIFF_TAG</DefaultTable>
+
+    <AsOfAttribute name="businessDate" fromColumnName="FROM_Z" toColumnName="THRU_Z"
+                   toIsInclusive="false" isProcessingDate="false" futureExpiringRowsExist="true"
+                   infinityDate="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"/>
+    <AsOfAttribute name="processingDate" fromColumnName="IN_Z" toColumnName="OUT_Z"
+                   toIsInclusive="false" isProcessingDate="true"
+                   infinityDate="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"
+                   defaultIfNotSpecified="[com.gs.fw.common.mithra.util.DefaultInfinityTimestamp.getDefaultInfinity()]"/>
+
+    <Attribute name="tagId" javaType="int" columnName="TAG_ID" primaryKey="true"/>
+    <Attribute name="entryId" javaType="int" columnName="ENTRY_ID" nullable="false"/>
+    <Attribute name="weight" javaType="double" columnName="WEIGHT" nullable="false"/>
+    <Attribute name="label" javaType="String" columnName="LABEL" maxLength="64" nullable="false"/>
+
+    <!-- Declared on the child as many-to-one, the way the demo object models express a chain
+         (see demos/01-crm-bitemporal InvoiceLine.invoice / reverse "lines"). The reverse name
+         gives DiffEntry a one-to-many "tags", so DiffBalance -> entries -> tags is a genuine
+         two-level deep-fetch path rather than a second copy of the one-level shape. -->
+    <Relationship name="entry" relatedObject="DiffEntry" cardinality="many-to-one"
+                  reverseRelationshipName="tags">
+        DiffEntry.entryId = this.entryId
+    </Relationship>
+</MithraObject>

@@ -3,6 +3,7 @@
     <MithraObjectResource name="DiffAudit"/>
     <MithraObjectResource name="DiffPosition"/>
     <MithraObjectResource name="DiffEntry"/>
+    <MithraObjectResource name="DiffTag"/>
     <MithraObjectResource name="DiffNumeric"/>
     <MithraObjectResource name="DiffFinderValue"/>
 </Mithra>

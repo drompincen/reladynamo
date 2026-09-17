@@ -9,6 +9,8 @@
         <MithraObjectConfiguration cacheType="partial"
                                    className="io.reladynamo.ddb.differential.domain.DiffEntry"/>
         <MithraObjectConfiguration cacheType="partial"
+                                   className="io.reladynamo.ddb.differential.domain.DiffTag"/>
+        <MithraObjectConfiguration cacheType="partial"
                                    className="io.reladynamo.ddb.differential.domain.DiffNumeric"/>
         <MithraObjectConfiguration cacheType="partial"
                                    className="io.reladynamo.ddb.differential.domain.DiffFinderValue"/>
