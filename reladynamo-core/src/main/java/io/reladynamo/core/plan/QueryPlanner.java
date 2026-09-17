@@ -1683,6 +1683,15 @@ public final class QueryPlanner {
                 }
                 return new Node(Type.OR, kids, op);
             }
+            // parent.getChildren() on a single object arrives as a RelationshipMultiEqualityOperation:
+            // an equality operation that is not a MultiEqualityOperation, so its foreign-key binding
+            // is invisible until it is expanded. Left opaque it becomes an unbindable atom and a
+            // navigation the foreign-key GSI can serve is refused with PLAN-001.
+            com.gs.fw.common.mithra.finder.MultiEqualityOperation expandedRelationship =
+                    ReladomoOperationAccess.relationshipEqualityAsMulti(op);
+            if (expandedRelationship != null) {
+                return decompose(expandedRelationship);
+            }
             return atom(op);
         }
 

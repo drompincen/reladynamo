@@ -21,6 +21,7 @@ import com.gs.fw.common.mithra.finder.NotInOperation;
 import com.gs.fw.common.mithra.finder.Operation;
 import com.gs.fw.common.mithra.finder.OrOperation;
 import com.gs.fw.common.mithra.finder.RangeOperation;
+import com.gs.fw.common.mithra.finder.RelationshipMultiEqualityOperation;
 import com.gs.fw.common.mithra.finder.asofop.AsOfEdgePointOperation;
 import com.gs.fw.common.mithra.finder.asofop.AsOfEqInfiniteNullOperation;
 import com.gs.fw.common.mithra.finder.asofop.AsOfEqOperation;
@@ -91,6 +92,28 @@ public final class ReladomoOperationAccess {
             return out;
         }
         return Collections.singletonList(op);
+    }
+
+    /**
+     * The operation a generated one-to-many accessor builds for a single parent —
+     * {@code parent.getEntries()} produces a {@code RelationshipMultiEqualityOperation}, not the
+     * {@code foreignKey IN (...)} that a batched deep fetch produces.
+     *
+     * <p>It implements {@code EqualityOperation} but <b>not</b> {@code MultiEqualityOperation}, so
+     * without this the planner sees one opaque atom, finds no key or GSI binding inside it, and
+     * refuses a navigation it can in fact serve from the foreign-key GSI. Expanding it yields the
+     * same atomic equalities the batched form yields.
+     *
+     * <p>{@code getOrCreateMultiEqualityOperation()} is a public Reladomo 18.1.0 method (verified
+     * with javap); this is deliberately not another reflective field read.
+     *
+     * @return the expanded form, or {@code null} when {@code op} is not one of these.
+     */
+    public static MultiEqualityOperation relationshipEqualityAsMulti(Operation op) {
+        if (!(op instanceof RelationshipMultiEqualityOperation)) {
+            return null;
+        }
+        return ((RelationshipMultiEqualityOperation) op).getOrCreateMultiEqualityOperation();
     }
 
     public static List<Operation> andOperands(AndOperation and) {
