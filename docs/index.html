@@ -213,8 +213,11 @@ DynamoDB</code></pre>
     <h2>Quickstart</h2>
 <pre><code>git clone https://github.com/drompincen/reladynamo.git
 cd reladynamo
-mvn clean install          # all modules; DynamoDB Local runs in-process, no Docker
-bash scripts/check.sh      # the full gate, including the H2-vs-DynamoDB differential suite</code></pre>
+java scripts/GenerateScripts.java   # scripts ship as *.sh.txt; this generates them
+mvn clean install                   # all modules; DynamoDB Local runs in-process, no Docker
+bash scripts/check.sh               # the full gate, including the H2-vs-DynamoDB differential suite</code></pre>
+    <p>The repository contains no executable scripts — see
+      <a href="https://github.com/drompincen/reladynamo/blob/main/start-here.md">start-here.md</a>.</p>
     <p>Then run a demo. Each is a standalone Maven project that runs against both H2 and DynamoDB:</p>
     <div class="scroll">
       <table>

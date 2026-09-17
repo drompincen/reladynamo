@@ -37,6 +37,8 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+      - name: Generate scripts from their .txt sources
+        run: java scripts/GenerateScripts.java
       - name: Run scripts/check.sh
         run: bash scripts/check.sh --iteration ci
       - name: Publish gate report

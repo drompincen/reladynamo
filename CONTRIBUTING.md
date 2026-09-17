@@ -14,9 +14,13 @@ wrong" is a reasonable first guess and a terrible policy. Never weaken a compari
 ## Before you start
 
 ```bash
-mvn clean install          # all modules
-bash scripts/check.sh      # the full gate — this is what CI runs
+java scripts/GenerateScripts.java   # scripts are tracked as *.sh.txt — see start-here.md
+mvn clean install                   # all modules
+bash scripts/check.sh               # the full gate — this is what CI runs
 ```
+
+**Never commit a `.sh` file.** Edit the `.sh.txt` source; if you changed a generated script in place,
+run `java scripts/GenerateScripts.java --adopt` before committing.
 
 `scripts/check.sh` is the contract. Seven gates, and `exit_condition_met` in
 `reports/check-latest.json` is true only when every one passes with nothing pending.
