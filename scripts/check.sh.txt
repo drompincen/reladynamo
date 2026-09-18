@@ -171,8 +171,14 @@ done
 # script still printed "-> reports/check-N.json" because the failure was swallowed. A reporting step
 # that lies about having reported is the worst kind of bug in a gate board.
 GATES_JSON="$TMP/gates.json"
+# CI passes `--iteration ci`, so the label is not always a number. %d on "ci" printed
+# "invalid number" to stderr and silently wrote iteration 0 — a board that misreports which
+# run it describes. Numbers stay numbers in the JSON; anything else becomes a string.
+if [[ "$ITER" =~ ^[0-9]+$ ]]; then ITER_JSON="$ITER"; else
+  ITER_JSON="$(python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.argv[1]))' "$ITER")"
+fi
 {
-  printf '{"iteration":%d,"pass":%d,"fail":%d,"pending":%d,"gates":[' "$ITER" "$pass" "$fail" "$pend"
+  printf '{"iteration":%s,"pass":%d,"fail":%d,"pending":%d,"gates":[' "$ITER_JSON" "$pass" "$fail" "$pend"
   for i in "${!NAMES[@]}"; do
     [ "$i" -gt 0 ] && printf ','
     python3 -c 'import json,sys; sys.stdout.write(json.dumps({"name":sys.argv[1],"state":sys.argv[2],"detail":sys.argv[3]}))' \
@@ -208,7 +214,7 @@ cp "$OUT" "$ROOT/reports/check-latest.json"
 
 printf '%-26s %-8s %s\n' GATE STATE DETAIL
 for i in "${!NAMES[@]}"; do printf '%-26s %-8s %s\n' "${NAMES[$i]}" "${STATES[$i]}" "${DETAILS[$i]}"; done
-printf -- '-- iteration %d: %d pass / %d fail / %d pending -> %s\n' \
+printf -- '-- iteration %s: %d pass / %d fail / %d pending -> %s\n' \
   "$ITER" "$pass" "$fail" "$pend" "$OUT"
 
 [ "$fail" -eq 0 ] && [ "$pend" -eq 0 ]
