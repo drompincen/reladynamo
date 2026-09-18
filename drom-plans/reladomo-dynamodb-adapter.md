@@ -2,9 +2,15 @@
 title: Reladynamo — a generic MIT-licensed Reladomo persistence adapter for DynamoDB
 status: in-progress
 created: 2026-09-12
-updated: 2026-09-12
-current_chapter: 1
+updated: 2026-09-17
+current_chapter: 10
 ---
+
+> **Bookkeeping note (2026-09-17).** Chapters 1-7 and 9 carry a `COMPLETE` status with their evidence
+> written into the status paragraph, but **44 of their checkboxes were never ticked** as work landed.
+> They are left unticked rather than ticked in bulk: ticking a box is a claim, and nobody has re-verified
+> those items one by one. Read each chapter's status paragraph, not its boxes. The live work is
+> chapter 10, whose only open item — tagging 0.1.0 — is the owner's to make.
 
 # Plan: Reladynamo
 
