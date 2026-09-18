@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>What You Give Up · Reladynamo</title>
+<meta name="description" content="What moving a Reladomo application from a relational database to DynamoDB through Reladynamo costs, with the workaround for each item, or none.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  :root {
+    color-scheme: light dark;
+    --ground:#F6F7F9; --surface:#FFFFFF; --ink:#16202E; --ink-soft:#55616F;
+    --rule:#D8DDE4; --rule-soft:#E8ECF1; --code-bg:#EDF0F4;
+    --works:#1B6470;  --works-bg:#E2EFF1;   /* served, or a workaround exists */
+    --gap:#A8661B;    --gap-bg:#F7EEE1;     /* not implemented or not evidenced yet */
+    --scope:#5A4B8A;  --scope-bg:#ECE8F5;   /* declared out of scope for 0.1.0 */
+    --wall:#9C2F49;   --wall-bg:#F8E7EB;    /* permanent: a property of DynamoDB */
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:#10161F; --surface:#172230; --ink:#E4E9EF; --ink-soft:#9BA8B7;
+      --rule:#2C3A4B; --rule-soft:#222E3D; --code-bg:#1B2735;
+      --works:#5FB8C6; --works-bg:#122C31;
+      --gap:#E0A65A; --gap-bg:#2E2415;
+      --scope:#A79AD4; --scope-bg:#221E33;
+      --wall:#E8809A; --wall-bg:#331A22;
+    }
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; padding-block:2rem 6rem; padding-left:1.25rem; padding-right:1.25rem;
+    background:var(--ground); color:var(--ink);
+    font-family:"Source Serif 4",Georgia,serif; font-size:1.0625rem; line-height:1.65;
+  }
+  .wrap { max-width:44rem; margin:0 auto; display:flex; flex-direction:column; gap:2.75rem; }
+  .crumbs { font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.85rem;
+    display:flex; flex-wrap:wrap; gap:.4rem 1.2rem; margin-bottom:-1rem; }
+  .eyebrow { font-family:"IBM Plex Mono",monospace; font-size:.72rem; letter-spacing:.13em;
+    text-transform:uppercase; color:var(--ink-soft); margin:0 0 .5rem; }
+  h1 { font-family:"IBM Plex Sans",system-ui,sans-serif; font-weight:700;
+    font-size:clamp(2rem,6vw,2.9rem); line-height:1.08; letter-spacing:-.02em;
+    margin:0 0 .75rem; text-wrap:balance; }
+  h2 { font-family:"IBM Plex Sans",system-ui,sans-serif; font-weight:600; font-size:1.4rem;
+    line-height:1.2; letter-spacing:-.01em; margin:0 0 .6rem; text-wrap:balance; }
+  p { margin:0 0 1rem; } p:last-child { margin-bottom:0; }
+  .lede { font-size:1.2rem; line-height:1.55; color:var(--ink-soft); margin:0; }
+  strong { font-weight:600; }
+  code { font-family:"IBM Plex Mono",monospace; font-size:.85em; background:var(--code-bg);
+    padding:.12em .35em; border-radius:3px; overflow-wrap:anywhere; }
+  section { display:flex; flex-direction:column; gap:.9rem; }
+  ul { margin:0; padding-left:1.2rem; } li { margin-bottom:.35rem; } li:last-child { margin-bottom:0; }
+  figure { margin:0; display:flex; flex-direction:column; gap:.7rem; }
+  figure svg { display:block; width:100%; max-width:100%; min-width:35rem; height:auto; }
+  figcaption { font-family:"IBM Plex Sans",sans-serif; font-size:.86rem; line-height:1.5;
+    color:var(--ink-soft); border-left:2px solid var(--rule); padding-left:.8rem; }
+  .figframe { background:var(--surface); border:1px solid var(--rule-soft); border-radius:4px;
+    padding:1.25rem 1rem; }
+  .scroll { overflow-x:auto; }
+  hr.keyline { border:0; border-top:1px solid var(--rule); margin:0; }
+  table { border-collapse:collapse; width:100%; font-family:"IBM Plex Sans",sans-serif; font-size:.88rem; }
+  th,td { text-align:left; padding:.5rem .7rem; border-bottom:1px solid var(--rule-soft); vertical-align:top; }
+  th { font-weight:600; font-size:.72rem; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-soft); }
+  td.mono { font-family:"IBM Plex Mono",monospace; font-size:.8rem; white-space:nowrap; }
+  td code { overflow-wrap:normal; }
+  .legend { display:flex; flex-wrap:wrap; gap:1rem 1.4rem; font-family:"IBM Plex Sans",sans-serif;
+    font-size:.8rem; color:var(--ink-soft); }
+  .legend span { display:inline-flex; align-items:center; gap:.45rem; }
+  .chip { width:.85rem; height:.85rem; border-radius:2px; flex:none; }
+  .c-works { background:var(--works-bg); border:1.5px solid var(--works); }
+  .c-ev { background:transparent; border:1.5px dashed var(--ink-soft); }
+  .c-wall { background:var(--wall-bg); border:1.5px solid var(--wall); }
+  .tag { display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:.68rem; letter-spacing:.08em;
+    text-transform:uppercase; padding:.08em .45em; border:1px solid; border-radius:2px; white-space:nowrap; }
+  .t-wall { color:var(--wall); background:var(--wall-bg); }
+  .t-gap { color:var(--gap); background:var(--gap-bg); }
+  .t-scope { color:var(--scope); background:var(--scope-bg); }
+  .kind { margin:0 0 -.4rem; }
+  .fix { font-family:"IBM Plex Sans",sans-serif; font-size:.94rem; line-height:1.55;
+    border-left:2px solid var(--works); padding-left:.8rem; }
+  .fix strong { color:var(--works); }
+  .fix.none { border-left-color:var(--wall); }
+  .fix.none strong { color:var(--wall); }
+  .callout { background:var(--wall-bg); border-left:3px solid var(--wall);
+    padding:.9rem 1.1rem; border-radius:0 3px 3px 0; }
+  .callout p { font-size:.98rem; }
+  footer { border-top:1px solid var(--rule); padding-top:1.5rem; font-family:"IBM Plex Sans",system-ui,sans-serif;
+    font-size:.85rem; color:var(--ink-soft); }
+  a { color:var(--works); }
+  :focus-visible { outline:2px solid var(--works); outline-offset:2px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <nav class="crumbs" aria-label="Site">
+    <a href="./">← Reladynamo docs</a>
+    <a href="bitemporal-seam.html">The bitemporal seam</a>
+    <a href="query-planner.html">Planning a bitemporal query</a>
+    <a href="https://github.com/drompincen/reladynamo">GitHub</a>
+  </nav>
+
+  <header>
+    <p class="eyebrow">Reladynamo · the price, stated</p>
+    <h1>What you give up</h1>
+    <p class="lede">Your object model and your finder calls come with you to DynamoDB. Some of what the
+      relational database did for you does not. Here is that list, with the workaround for each item,
+      or the word <em>none</em>.</p>
+  </header>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>At a glance</h2>
+    <p>Each item is one of three kinds. <span class="tag t-wall">Permanent</span> is a property of
+      DynamoDB, so no amount of adapter work removes it. <span class="tag t-gap">Not yet</span> is a gap
+      in the adapter or its evidence. <span class="tag t-scope">Out of scope</span> is work that 0.1.0
+      has declared it does not do.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>What you lose</th><th>Kind</th><th>Workaround</th></tr></thead>
+        <tbody>
+          <tr><td>Units of work over 100 items or 4 MB</td><td><span class="tag t-wall">Permanent</span></td><td>Split into units that are each correct on their own</td></tr>
+          <tr><td>Reading your own uncommitted writes from the store</td><td><span class="tag t-wall">Permanent</span></td><td>Read before the first write, or use objects already in the cache</td></tr>
+          <tr><td>Queries on any predicate</td><td><span class="tag t-wall">Permanent</span></td><td>Supply the key, add a GSI, or opt in to Scan</td></tr>
+          <tr><td>Items over 400 KB, oversized keys</td><td><span class="tag t-wall">Permanent</span></td><td>Move large values out of the row</td></tr>
+          <tr><td>Read-your-writes through an index</td><td><span class="tag t-wall">Permanent</span></td><td>Read by full key instead. Index reads: none</td></tr>
+          <tr><td>Unique constraints off the primary key</td><td><span class="tag t-wall">Permanent</span></td><td>Model the unique value as its own keyed entity</td></tr>
+          <tr><td>15 persister features: aggregates, cursors, mass delete…</td><td><span class="tag t-gap">Not yet</span></td><td>None. Rewrite the call site</td></tr>
+          <tr><td>Online migration, the way back, ASE</td><td><span class="tag t-scope">Out of scope</span></td><td>Offline copy with a write freeze</td></tr>
+          <tr><td>Evidence from real AWS and real load</td><td><span class="tag t-gap">Not yet</span></td><td>Run your own preflight</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <p class="kind"><span class="tag t-wall">Permanent</span></p>
+    <h2>A transaction has a hard edge</h2>
+    <p>With a relational database, a Reladomo unit of work gets an open transaction. It can write, read
+      back what it wrote, and commit any number of rows. DynamoDB has no open transaction. The adapter
+      holds every write in memory and sends them all at commit as <strong>one</strong>
+      <code>TransactWriteItems</code> request covering every entity table. DynamoDB caps that request
+      at 100 actions and 4 MB.</p>
+
+    <div class="figframe scroll">
+      <figure>
+        <svg viewBox="0 0 760 496" role="img" aria-label="A grid of 100 action slots is staged in memory, and a 101st slot sits outside it. At commit, four checks run: at most 100 actions, at most 4 MB, DynamoDB as the only durable resource, and one client. If a check fails, the transaction is refused and nothing is sent. If they all pass, one TransactWriteItems request covers every table. There are three results: everything is committed, DynamoDB cancels it and nothing is written, or the outcome is unknown and the client is quarantined.">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
+            </marker>
+            <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--wall)"></path>
+            </marker>
+            <pattern id="cell" x="28" y="48" width="20" height="20" patternUnits="userSpaceOnUse">
+              <rect x="0.5" y="0.5" width="15" height="15" rx="1.5" fill="var(--works-bg)" stroke="var(--works)" stroke-width="1"></rect>
+            </pattern>
+          </defs>
+
+          <text x="20" y="22" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="1.3" fill="currentColor" opacity="0.55">STAGED IN MEMORY UNTIL COMMIT</text>
+          <rect x="20" y="40" width="212" height="212" rx="3" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+          <rect x="28" y="48" width="200" height="200" fill="url(#cell)"></rect>
+          <rect x="28.5" y="48.5" width="15" height="15" rx="1.5" fill="var(--works)"></rect>
+          <rect x="48.5" y="48.5" width="15" height="15" rx="1.5" fill="var(--works)"></rect>
+          <rect x="68.5" y="48.5" width="15" height="15" rx="1.5" fill="var(--works)"></rect>
+          <rect x="88.5" y="48.5" width="15" height="15" rx="1.5" fill="var(--works)"></rect>
+          <text x="252" y="222" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--wall)">101</text>
+          <rect x="244.5" y="228.5" width="15" height="15" rx="1.5" fill="var(--wall-bg)" stroke="var(--wall)" stroke-dasharray="3 2"></rect>
+          <text x="20" y="274" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="currentColor">100 slots: one action per item</text>
+          <text x="20" y="292" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.75">filled: one bitemporal correction</text>
+
+          <line x1="238" y1="146" x2="318" y2="146" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"></line>
+
+          <rect x="320" y="40" width="196" height="212" rx="3" fill="none" stroke="currentColor" stroke-width="2"></rect>
+          <text x="334" y="64" font-family="IBM Plex Sans, sans-serif" font-size="12.5" font-weight="600" fill="currentColor">checked at commit</text>
+          <text x="334" y="96" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">≤ 100 distinct actions</text>
+          <text x="334" y="118" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">≤ 4 MB of item bytes</text>
+          <text x="334" y="140" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">DynamoDB is the only</text>
+          <text x="334" y="156" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">durable resource</text>
+          <text x="334" y="178" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">one DynamoDbClient</text>
+          <text x="334" y="222" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="var(--wall)">any failure: roll back,</text>
+          <text x="334" y="238" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="var(--wall)">send nothing</text>
+
+          <line x1="516" y1="146" x2="564" y2="146" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"></line>
+
+          <rect x="566" y="40" width="182" height="212" rx="3" fill="var(--works-bg)" stroke="var(--works)" stroke-width="1.8"></rect>
+          <text x="657" y="64" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" font-weight="600" fill="var(--works)">TransactWriteItems</text>
+          <text x="657" y="82" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.75">one request · every table</text>
+          <rect x="583" y="98" width="148" height="34" rx="2" fill="var(--surface)" stroke="var(--works)" stroke-width="1.2"></rect>
+          <text x="657" y="120" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">Customer</text>
+          <rect x="583" y="142" width="148" height="34" rx="2" fill="var(--surface)" stroke="var(--works)" stroke-width="1.2"></rect>
+          <text x="657" y="164" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">Contact</text>
+          <rect x="583" y="186" width="148" height="34" rx="2" fill="var(--surface)" stroke="var(--works)" stroke-width="1.2"></rect>
+          <text x="657" y="208" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">Opportunity</text>
+
+          <path d="M418 252 V312 H105 V336" fill="none" stroke="var(--wall)" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#arw)"></path>
+          <path d="M657 252 V322 M289 322 H657" fill="none" stroke="currentColor" stroke-width="1.4"></path>
+          <path d="M289 322 V336 M473 322 V336 M657 322 V336" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"></path>
+
+          <rect x="20" y="340" width="170" height="140" rx="3" fill="var(--wall-bg)" stroke="var(--wall)" stroke-width="1.6" stroke-dasharray="4 3"></rect>
+          <text x="32" y="362" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--wall)">refused</text>
+          <text x="32" y="384" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor">TXN-001 · &gt;100 actions</text>
+          <text x="32" y="402" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor">TXN-002 · &gt;4 MB</text>
+          <text x="32" y="420" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor">TXN-005 · mixed / 2PC</text>
+          <text x="32" y="468" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="currentColor">nothing written</text>
+
+          <rect x="204" y="340" width="170" height="140" rx="3" fill="var(--works-bg)" stroke="var(--works)" stroke-width="1.6"></rect>
+          <text x="216" y="362" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--works)">committed</text>
+          <text x="216" y="384" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="currentColor">every action applied,</text>
+          <text x="216" y="400" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="currentColor">across all tables at once</text>
+          <text x="216" y="468" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="currentColor">durable</text>
+
+          <rect x="388" y="340" width="170" height="140" rx="3" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+          <text x="400" y="362" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="currentColor">cancelled</text>
+          <text x="400" y="382" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.75">duplicate key:</text>
+          <text x="400" y="398" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor">UniqueIndexViolation</text>
+          <text x="400" y="416" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.75">stale prior state:</text>
+          <text x="400" y="432" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor">OptimisticLock</text>
+          <text x="400" y="450" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor">anything else: TXN-004</text>
+          <text x="400" y="468" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="currentColor">nothing written</text>
+
+          <rect x="572" y="340" width="170" height="140" rx="3" fill="none" stroke="var(--wall)" stroke-width="1.8"></rect>
+          <text x="584" y="362" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--wall)">outcome unknown</text>
+          <text x="584" y="382" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.75">timeout · 5xx · network</text>
+          <text x="584" y="400" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor">TXN-003</text>
+          <text x="584" y="422" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="currentColor">client quarantined,</text>
+          <text x="584" y="438" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="currentColor">request and token kept</text>
+          <text x="584" y="468" font-family="IBM Plex Sans, sans-serif" font-size="11" font-weight="600" fill="var(--wall)">do not replay</text>
+        </svg>
+        <figcaption>The budget counts physical items, not business objects. Two writes to the same item in
+          one transaction merge into one action. A correction that splits a bitemporal rectangle closes one
+          row and inserts the pieces, so a single <code>setQuantity</code> as of a later date spends three
+          actions — one close, one head, one new value — and a bounded
+          <code>setQuantityUntil</code> spends four.</figcaption>
+      </figure>
+    </div>
+
+    <p>A transaction that goes over the cap is <strong>refused, not chunked</strong>. Two
+      <code>TransactWriteItems</code> calls are two separate commits. If the second one fails, the
+      first is already durable, and "atomic" would stop being true of your data.</p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Code</th><th>When</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">RELADYNAMO-TXN-001</td><td>More than 100 distinct actions at commit</td></tr>
+          <tr><td class="mono">RELADYNAMO-TXN-002</td><td>Staged item bytes over 4 MB</td></tr>
+          <tr><td class="mono">RELADYNAMO-TXN-003</td><td>Commit outcome unknown after retries; the client is quarantined</td></tr>
+          <tr><td class="mono">RELADYNAMO-TXN-004</td><td>DynamoDB cancelled or rejected the request, and no Reladomo conflict type applies</td></tr>
+          <tr><td class="mono">RELADYNAMO-TXN-005</td><td>Another durable resource (JDBC, JMS) in the same transaction, a two-phase prepare, or two DynamoDB clients</td></tr>
+          <tr><td class="mono">RELADYNAMO-TXN-006</td><td>A read reaches DynamoDB while writes are staged</td></tr>
+          <tr><td class="mono">RELADYNAMO-TXN-007</td><td>Any non-null <code>TxParticipationMode</code>: no database locks or version checks through it</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <p><strong>What a failed transaction guarantees.</strong> If the transaction is refused, rolled
+        back or cancelled, <strong>nothing it staged is durable</strong>. A Reladomo flush does not commit
+        anything to DynamoDB. Acceptance case 3 pins this, including a failure between closing a
+        rectangle and inserting its replacement. There is one exception. After a timeout, a 5xx or a
+        network error, DynamoDB may or may not have applied the request. The adapter then throws
+        <code>RELADYNAMO-TXN-003</code> with the exact request and its <code>ClientRequestToken</code>,
+        and refuses to use that <code>DynamoDbClient</code> again until the process restarts. Check the
+        store before you do anything else.</p>
+    </div>
+
+    <p class="fix"><strong>Workaround.</strong> Keep each unit of work well inside 100 actions, and split
+      work at business boundaries where each part is correct on its own. A batch job that commits
+      thousands of rows in one transaction needs a new design, not a bigger batch. For reads inside a
+      transaction, read before the first write, or use objects Reladomo already holds. A read that reaches
+      the store after a write is staged refuses, because returning the state from before the
+      transaction would look like a normal answer.</p>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <p class="kind"><span class="tag t-wall">Permanent</span></p>
+    <h2>Every query starts from a key</h2>
+    <p>SQL evaluates any <code>WHERE</code> clause and leaves indexing as a tuning decision for later.
+      DynamoDB answers one kind of question: give it an <strong>exact partition-key value</strong>, and
+      it can narrow by sort key. Anything else is a Scan, which reads every item in the table, and you
+      pay for every one.</p>
+
+    <div class="figframe scroll">
+      <figure>
+        <svg viewBox="0 0 760 440" role="img" aria-label="Three predicates against one table. balanceId equals 42 supplies the partition key, so DynamoDB reads one partition with a consistent read. accountId equals 7 has no base key but matches a configured GSI, so one index partition is read with eventual consistency. quantity greater than 5 has neither, so it would need a Scan of every partition, and the planner refuses with RELADYNAMO-PLAN-001 unless table scans are enabled.">
+          <defs>
+            <marker id="qk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill="var(--works)"></path>
+            </marker>
+            <marker id="qa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill="currentColor"></path>
+            </marker>
+            <marker id="qw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill="var(--wall)"></path>
+            </marker>
+            <pattern id="item" x="320" y="64" width="52" height="26" patternUnits="userSpaceOnUse">
+              <rect x="0.5" y="0.5" width="41" height="19" rx="2" fill="none" stroke="currentColor" stroke-width="1" opacity="0.35"></rect>
+            </pattern>
+          </defs>
+
+          <text x="20" y="30" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="1.3" fill="currentColor" opacity="0.55">THE PREDICATE</text>
+          <text x="320" y="30" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="1.3" fill="currentColor" opacity="0.55">WHAT GETS READ</text>
+
+          <rect x="20" y="50" width="230" height="60" rx="3" fill="var(--works-bg)" stroke="var(--works)" stroke-width="1.6"></rect>
+          <text x="34" y="75" font-family="IBM Plex Mono, monospace" font-size="12" fill="currentColor">balanceId = 42</text>
+          <text x="34" y="95" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="var(--works)">the full partition key</text>
+
+          <rect x="320" y="64" width="406" height="98" fill="url(#item)"></rect>
+          <rect x="424.5" y="64.5" width="41" height="19" rx="2" fill="var(--works-bg)" stroke="var(--works)" stroke-width="1.4"></rect>
+          <rect x="424.5" y="90.5" width="41" height="19" rx="2" fill="var(--works-bg)" stroke="var(--works)" stroke-width="1.4"></rect>
+          <rect x="424.5" y="116.5" width="41" height="19" rx="2" fill="var(--works-bg)" stroke="var(--works)" stroke-width="1.4"></rect>
+          <rect x="424.5" y="142.5" width="41" height="19" rx="2" fill="var(--works-bg)" stroke="var(--works)" stroke-width="1.4"></rect>
+          <g font-family="IBM Plex Mono, monospace" font-size="10" text-anchor="middle" fill="currentColor" opacity="0.6">
+            <text x="341" y="180">#17</text><text x="393" y="180">#3</text><text x="497" y="180">#88</text><text x="549" y="180">#5</text>
+            <text x="601" y="180">#61</text><text x="653" y="180">#29</text><text x="705" y="180">#70</text>
+          </g>
+          <text x="445" y="180" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--works)">#42</text>
+          <text x="320" y="200" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="1.3" fill="currentColor" opacity="0.55">BASE TABLE · ONE COLUMN PER PARTITION</text>
+          <path d="M250 80 C300 80, 330 20, 445 58" fill="none" stroke="var(--works)" stroke-width="1.6" marker-end="url(#qk)"></path>
+          <text x="478" y="50" font-family="IBM Plex Sans, sans-serif" font-size="11.5" fill="var(--works)">GetItem or Query · consistent read</text>
+
+          <rect x="20" y="227" width="230" height="60" rx="3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="5 3"></rect>
+          <text x="34" y="252" font-family="IBM Plex Mono, monospace" font-size="12" fill="currentColor">accountId = 7</text>
+          <text x="34" y="272" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="currentColor" opacity="0.75">a foreign key with a GSI</text>
+
+          <rect x="320" y="224" width="120" height="66" rx="3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="5 3"></rect>
+          <rect x="330" y="234" width="100" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"></rect>
+          <rect x="330" y="260" width="100" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"></rect>
+          <g opacity="0.35" fill="none" stroke="currentColor" stroke-width="1">
+            <rect x="456" y="224" width="120" height="66" rx="3"></rect>
+            <rect x="466" y="234" width="100" height="20" rx="2"></rect><rect x="466" y="260" width="100" height="20" rx="2"></rect>
+            <rect x="592" y="224" width="120" height="66" rx="3"></rect>
+            <rect x="602" y="234" width="100" height="20" rx="2"></rect><rect x="602" y="260" width="100" height="20" rx="2"></rect>
+          </g>
+          <g font-family="IBM Plex Mono, monospace" font-size="10" text-anchor="middle" fill="currentColor">
+            <text x="380" y="306">acct 7</text><text x="516" y="306" opacity="0.6">acct 12</text><text x="652" y="306" opacity="0.6">acct 3</text>
+          </g>
+          <text x="320" y="326" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="1.3" fill="currentColor" opacity="0.55">GSI ON accountId · ALL · EVENTUALLY CONSISTENT</text>
+          <line x1="250" y1="257" x2="318" y2="257" stroke="currentColor" stroke-width="1.4" marker-end="url(#qa)"></line>
+
+          <rect x="20" y="360" width="230" height="60" rx="3" fill="var(--wall-bg)" stroke="var(--wall)" stroke-width="1.6" stroke-dasharray="4 3"></rect>
+          <text x="34" y="385" font-family="IBM Plex Mono, monospace" font-size="12" fill="currentColor">quantity &gt; 5</text>
+          <text x="34" y="405" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="var(--wall)">no key, no index</text>
+
+          <rect x="320" y="352" width="420" height="76" rx="3" fill="var(--wall-bg)" stroke="var(--wall)" stroke-width="1.6" stroke-dasharray="4 3"></rect>
+          <text x="334" y="376" font-family="IBM Plex Sans, sans-serif" font-size="12.5" font-weight="600" fill="var(--wall)">Scan: every item in every partition, all billed</text>
+          <text x="334" y="397" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">RELADYNAMO-PLAN-001 · scans are disabled</text>
+          <text x="334" y="416" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="currentColor" opacity="0.75">unless allowTableScan(true) is configured</text>
+          <line x1="250" y1="390" x2="318" y2="390" stroke="var(--wall)" stroke-width="1.4" marker-end="url(#qw)"></line>
+        </svg>
+        <figcaption>Partitions are placed by hash, so without the key there is no order to use. An
+          <code>IN</code> list or <code>OR</code> on the key becomes one query per value, up to
+          <code>pkFanOutLimit</code> (default 100). Past that limit the planner refuses with
+          <code>RELADYNAMO-PLAN-002</code>.</figcaption>
+      </figure>
+    </div>
+
+    <div class="legend">
+      <span><i class="chip c-works"></i> strongly consistent read</span>
+      <span><i class="chip c-ev"></i> eventually consistent read</span>
+      <span><i class="chip c-wall"></i> refused by default</span>
+    </div>
+
+    <p>The planner tries three things in order: a base-table key, then a configured GSI whose partition
+      key the predicate pins by equality, then a Scan. Scans are off by default, so some queries that run
+      on H2 will not plan at all. That is on purpose. A silent Scan passes in testing and fails in
+      production, on cost. There are no server-side joins either, so a deep fetch becomes extra round
+      trips.</p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Code</th><th>Refused because</th><th>Workaround</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">RELADYNAMO-PLAN-001</td><td>No partition key on the table or any GSI, and scans are off</td><td>Supply the key, add a GSI, or enable scans for a bounded batch job</td></tr>
+          <tr><td class="mono">RELADYNAMO-PLAN-002</td><td>Key <code>IN</code>/<code>OR</code> fans out past 100</td><td>Split the call, or raise the limit</td></tr>
+          <tr><td class="mono">RELADYNAMO-PLAN-006</td><td>More than <code>maxPages</code> (64) pages; a partial answer would look complete</td><td>Narrow the query, or raise the limit</td></tr>
+          <tr><td class="mono">RELADYNAMO-PLAN-007</td><td>More than 50,000 rows to hold in memory</td><td>Narrow the query</td></tr>
+          <tr><td class="mono">RELADYNAMO-RESIDUAL-001</td><td>A predicate that follows a relationship (<code>exists</code>, <code>notExists</code>, mapped)</td><td>Resolve the related keys first, then query by them</td></tr>
+          <tr><td class="mono">RELADYNAMO-PLAN-010</td><td><code>computeFunction</code>: a raw SQL expression</td><td>None</td></tr>
+          <tr><td class="mono">RELADYNAMO-PLAN-011</td><td>Tuple / temp-object queries</td><td>None</td></tr>
+          <tr><td class="mono">RELADYNAMO-PLAN-012</td><td>A <code>float</code> or <code>double</code> key component</td><td>Use an integral, string or <code>BigDecimal</code> key</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <p class="kind"><span class="tag t-wall">Permanent</span></p>
+    <h2>Rows have a ceiling</h2>
+    <p>An item can be at most <strong>400 KB</strong>. The adapter measures the item exactly as it will
+      be stored, including the payload, <code>pk</code>, <code>sk</code>, the schema-version attribute and
+      every GSI key, and throws <code>ItemTooLargeException</code> with the entity, the key and the size
+      before sending anything. Keys are capped at <strong>2048 bytes</strong> (partition) and
+      <strong>1024 bytes</strong> (sort) of UTF-8, and are checked when the key is built. A very wide row,
+      a large text column or a binary attachment has nowhere to go.</p>
+    <p>The limits also add up. Ten items of maximum size come to 3.9 MB, so eleven of them cannot fit one
+      4 MB transaction however few actions they are.</p>
+    <p class="fix"><strong>Workaround.</strong> Move large values out of the row, for example into an
+      object store, and keep a reference. That changes your object model, and the adapter has no built-in
+      offload. For keys, the only fix is a shorter key.</p>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <p class="kind"><span class="tag t-wall">Permanent</span></p>
+    <h2>Indexes lag behind</h2>
+    <p>A relational secondary index changes in the same transaction as its row. A DynamoDB GSI updates
+      asynchronously after the write commits. A read through it can miss a row that was just committed,
+      or return one that was just removed. DynamoDB offers no <code>consistentRead</code> for a GSI.</p>
+    <p><strong>Where the planner uses a GSI:</strong></p>
+    <ul>
+      <li>When the base table has no partition key to use but a configured GSI's partition key is pinned by
+        equality. The main case is children by foreign key; the differential suite measured one such deep
+        fetch at 24 children across 8 parents in a single query with no scan.</li>
+      <li>For a sparse "current version" index on an as-of query, but only when
+        <code>estimatedVersionsPerKey</code> is above 4. That threshold has not been calibrated.</li>
+    </ul>
+    <p><strong>Where it never does:</strong> <code>GetItem</code> and base-table queries (always
+      consistent reads), <code>refresh</code> and <code>refreshDatedObject</code> (a consistent
+      <code>GetItem</code>), date-range and delete planning, and any planner built with
+      <code>allowGsi(false)</code> or <code>inTransaction(true)</code>.</p>
+
+    <div class="callout">
+      <p><strong>"Inside a transaction" is a setting, not something the adapter detects.</strong> Nothing
+        sets <code>inTransaction</code> from the live Reladomo transaction. With the default
+        <code>PlannerConfig</code>, a read inside a transaction, before its first write, can go through a
+        GSI and get stale results. If a transactional code path reads through an index, give its persister
+        a <code>PlannerConfig</code> with <code>inTransaction(true)</code> or
+        <code>allowGsi(false)</code>.</p>
+    </div>
+
+    <p>Only <code>ALL</code> projections are allowed. <code>KEYS_ONLY</code> and <code>INCLUDE</code>
+      are refused at table creation with <code>RELADYNAMO-CFG-014</code>, because the missing attributes
+      would decode as null. So every index stores a full copy of the item, and every write pays for that
+      copy.</p>
+    <p class="fix none"><strong>Workaround.</strong> Where correctness depends on reading your own
+      writes, read by full key from the base table. Everywhere else, accept eventual reads on index paths.
+      There is no way to get a strongly consistent read from an index.</p>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <p class="kind"><span class="tag t-wall">Permanent</span></p>
+    <h2>The key is the only unique constraint</h2>
+    <p>A relational <code>UNIQUE</code> index on an email or account number rejects the second insert,
+      whichever process sends it. The adapter enforces exactly one kind of uniqueness. Each ORM insert is
+      conditional on <code>attribute_not_exists(pk)</code> for its item key, and a duplicate raises
+      Reladomo's own <code>MithraUniqueIndexViolationException</code>. DynamoDB evaluates the condition,
+      so this holds across JVMs. For a dated entity, the item key includes the temporal from-bounds.</p>
+    <p>Nothing else is unique. A GSI enforces nothing, and two items can share an index key.
+      <code>GsiSpec.uniqueAttribute</code> exists, but it builds a <code>KEYS_ONLY</code> index, which
+      table creation refuses with <code>RELADYNAMO-CFG-014</code>.</p>
+    <p class="fix"><strong>Workaround.</strong> Make the unique value its own entity with that value as
+      its primary key, for example a <code>CustomerEmail</code> keyed by email, and insert it in the same
+      transaction as its owner. A duplicate then cancels the whole <code>TransactWriteItems</code> with
+      <code>MithraUniqueIndexViolationException</code>. It costs one action per unique value and a model
+      change. This is the standard DynamoDB pattern, not an adapter feature, and no test here exercises
+      it.</p>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <p class="kind"><span class="tag t-gap">Not yet</span></p>
+    <h2>Fifteen persister features refuse by name</h2>
+    <p><code>DynamoDbPersister</code> implements 32 Reladomo SPI methods. Seventeen of them, 15 distinct
+      names with two overloads, throw <code>UnsupportedOperationException</code> with the message
+      <em>"DynamoDbPersister.&lt;method&gt; is not implemented yet for &lt;Class&gt;"</em>. They have no
+      <code>RELADYNAMO</code> code. The method name is in the message deliberately: an empty result would
+      look the same as an empty table. <code>setTxParticipationMode</code> also refuses any non-null mode,
+      with <code>RELADYNAMO-TXN-007</code>.</p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Reladomo feature</th><th>SPI methods that refuse</th></tr></thead>
+        <tbody>
+          <tr><td><code>AggregateList</code></td><td class="mono">findAggregatedData</td></tr>
+          <tr><td>Cursor iteration and cursor-based loading</td><td class="mono">findCursor</td></tr>
+          <tr><td>Full cache, runtime cache reload</td><td class="mono">loadFullCache · reloadFullCache<br>renewCacheForOperation</td></tr>
+          <tr><td>Mass delete and purge of an operation-based list</td><td class="mono">deleteUsingOperation · deleteBatchUsingOperation<br>findForMassDelete · prepareForMassDelete<br>prepareForMassPurge (×2)</td></tr>
+          <tr><td>Updates Reladomo merges at flush</td><td class="mono">multiUpdate · batchUpdate</td></tr>
+          <tr><td>Dated history that is not in cache</td><td class="mono">getForDateRange</td></tr>
+          <tr><td>Raw SQL functions</td><td class="mono">computeFunction</td></tr>
+          <tr><td>Source-attribute routing (already refused by <code>RELADYNAMO-CFG-012</code>)</td><td class="mono">extractDatabaseIdentifiers (×2)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><strong>Which ones a real application hits.</strong> The required set came from running
+      applications, not from reading this list. The car-classifier and petstore demos ran with their
+      portals bound to DynamoDB, and <code>AcceptanceRequiredSpiTest</code> ran with H2 disconnected and
+      caches cold. Together those runs reached <code>insert</code>, <code>find</code>,
+      <code>update</code>, <code>count</code>, <code>refresh</code> and <code>enrollDatedObject</code>.
+      None of them reached a refused method.</p>
+    <p>That tells you about those applications, not yours. The rows above are everyday Reladomo APIs.
+      Search your code first for <code>AggregateList</code>, <code>deleteAll</code> on a list, and
+      transactions that update several objects of one class. Reladomo 18.1.0 can merge those updates into
+      a <code>MultiUpdateOperation</code> or <code>BatchUpdateOperation</code>.</p>
+    <p class="fix none"><strong>Workaround: none in the adapter.</strong> You have to change the call
+      site. For example, aggregate in Java over a keyed query, or find the objects and delete them one at
+      a time inside the action budget. That means your call sites do change after all.</p>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <p class="kind"><span class="tag t-scope">Out of scope for 0.1.0</span></p>
+    <h2>Migration is offline and one-way</h2>
+    <p>Version 0.1.0 supports one way to migrate: stop writes to the relational source, copy the data with
+      <code>Backfill</code>, verify it, then cut over. <code>Backfill</code> reads back and compares every
+      row it copies, refuses an empty source unless the caller declared the source legitimately empty, and
+      saves checkpoints so a killed run can resume. Its writes are unconditional upserts. If a stale source row is replayed after a newer
+      DynamoDB write, it overwrites that write without warning. That is why the source must not change
+      while the copy runs.</p>
+    <ul>
+      <li><strong>Online migration</strong> (CDC, write ordering, cutover fencing): not implemented.
+        Workaround: freeze writes for the whole copy.</li>
+      <li><strong>Reverse migration</strong> from DynamoDB back to a relational database: does not exist.
+        Only the row-set differ works in both directions. Workaround: build and rehearse your own way
+        back before cutover, or accept the lock-in knowingly.</li>
+      <li><strong>Relational extraction and Sybase ASE</strong>: <code>Backfill</code> copies rows that
+        something else has already extracted. Nothing has run against ASE, and passing on H2 proves
+        nothing about ASE temporal types, collation or identity columns. Workaround: none from this
+        project.</li>
+    </ul>
+    <p>Three of the inspection's 13 acceptance cases are blocked by this scope, not by unfinished
+      work.</p>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <p class="kind"><span class="tag t-gap">Not yet</span></p>
+    <h2>What nobody has measured</h2>
+    <p>Every test runs against DynamoDB Local, in-process. Nothing has run against a real AWS endpoint,
+      and nothing has run under load. DynamoDB Local is good for checking semantics. It tells you nothing
+      about:</p>
+    <ul>
+      <li>how far GSIs lag, and whether a stale read ever reaches a cached relationship;</li>
+      <li>throttling and <code>TransactionConflict</code> rates with concurrent writers;</li>
+      <li>how often the unknown-outcome path fires on a real network;</li>
+      <li>hot partitions from long histories or large foreign-key collections;</li>
+      <li>consumed capacity, p95/p99 latency and cost for your access patterns.</li>
+    </ul>
+    <p>The only performance numbers this project has, recorded in
+      <a href="https://github.com/drompincen/reladynamo/blob/main/docs/PERFORMANCE.md">docs/PERFORMANCE.md</a>,
+      are JMH micro-benchmarks of per-row encoding on one machine, one fork, three one-second iterations.
+      Every error bar there is larger than its score. They answer one order-of-magnitude question — the
+      codec cost is negligible next to a round trip — and nothing else.</p>
+    <p class="fix"><strong>Workaround.</strong> Before you plan a cutover, run your own preflight on a
+      real AWS account with your model, your data volume and your concurrency.</p>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>Who this suits today</h2>
+    <p>Reladynamo is a good fit for a project that:</p>
+    <ul>
+      <li>uses bitemporal, audit-only or non-dated entities, with standard axis names or one custom
+        unitemporal axis;</li>
+      <li>reads rows by complete key, or by a foreign key with an <code>ALL</code>-projected GSI, and can
+        tolerate eventual consistency on those index reads;</li>
+      <li>keeps units of work well inside 100 actions;</li>
+      <li>doesn't use aggregate lists, cursors, mass deletes or a full cache;</li>
+      <li>can migrate offline and doesn't need a way back.</li>
+    </ul>
+    <p>If your project needs something outside that, it is either a permanent boundary or an open gap,
+      and this page has named both. Finding that out in preflight costs far less than finding it after
+      cutover.</p>
+  </section>
+
+  <footer>
+    <p>Checked against <code>reladynamo-core</code> and <code>reladynamo-ddb</code> source on
+      2026-09-17. Where a document and the code disagreed, this page follows the code. Scope is defined
+      in the <a href="https://github.com/drompincen/reladynamo/blob/main/docs/SUPPORT-CONTRACT.md">support
+      contract</a>, and each finding's status is in
+      <a href="https://github.com/drompincen/reladynamo/blob/main/docs/INSPECTION-TRACKING.md">inspection
+      tracking</a>. MIT licensed.</p>
+  </footer>
+
+</div>
+
+</body>
+</html>

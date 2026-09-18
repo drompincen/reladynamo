@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your Table on DynamoDB · Reladynamo</title>
+<meta name="description" content="The same bitemporal rows shown as a relational table and as the exact DynamoDB items Reladynamo writes, with the partition and sort keys taken apart.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  :root {
+    color-scheme: light dark;
+    --ground:#F6F7F9; --surface:#FFFFFF; --ink:#16202E; --ink-soft:#55616F;
+    --rule:#D8DDE4; --rule-soft:#E8ECF1; --code-bg:#EDF0F4;
+    /* The two time axes keep their seam-page colours; ident marks the key that names a partition. */
+    --business:#A8661B;   --business-bg:#F7EEE1;   --business-ink:#8F5514;
+    --processing:#1B6470; --processing-bg:#E2EFF1;
+    --ident:#5A4B8A;      --ident-bg:#ECE8F5;
+    --swap:#9C2F49;       --swap-bg:#F8E7EB;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:#10161F; --surface:#172230; --ink:#E4E9EF; --ink-soft:#9BA8B7;
+      --rule:#2C3A4B; --rule-soft:#222E3D; --code-bg:#1B2735;
+      --business:#E0A65A;   --business-bg:#2E2415;   --business-ink:#E0A65A;
+      --processing:#5FB8C6; --processing-bg:#122C31;
+      --ident:#A79AD4;      --ident-bg:#221E33;
+      --swap:#E8809A;       --swap-bg:#331A22;
+    }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding-block:2rem 6rem; padding-left:1.25rem; padding-right:1.25rem; background:var(--ground); color:var(--ink); font-family:"Source Serif 4",Georgia,serif; font-size:1.0625rem; line-height:1.65; }
+  .wrap { max-width:64rem; margin:0 auto; display:flex; flex-direction:column; gap:2.75rem; }
+  .crumbs { font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.85rem; display:flex; flex-wrap:wrap; gap:.4rem 1.2rem; margin-bottom:-1rem; }
+  .eyebrow { font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.72rem; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-soft); margin:0 0 .5rem; }
+  h1 { font-family:"IBM Plex Sans",system-ui,sans-serif; font-weight:700; font-size:clamp(2rem,6vw,2.9rem); line-height:1.08; letter-spacing:-.02em; margin:0 0 .75rem; text-wrap:balance; }
+  h2 { font-family:"IBM Plex Sans",system-ui,sans-serif; font-weight:600; font-size:1.4rem; line-height:1.2; letter-spacing:-.01em; margin:0 0 .6rem; text-wrap:balance; }
+  p { margin:0 0 1rem; } p:last-child { margin-bottom:0; }
+  .lede { font-size:1.2rem; line-height:1.55; color:var(--ink-soft); margin:0; }
+  strong { font-weight:600; }
+  code { font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.85em; background:var(--code-bg); padding:.12em .35em; border-radius:3px; }
+  pre { font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.85rem; line-height:1.5; background:var(--code-bg); padding:1rem 1.1rem; border-radius:4px; overflow-x:auto; margin:0; }
+  pre code { background:none; padding:0; font-size:inherit; }
+  section { display:flex; flex-direction:column; gap:.9rem; }
+  figure { margin:0; display:flex; flex-direction:column; gap:.7rem; }
+  figure svg { display:block; width:100%; max-width:100%; height:auto; }
+  figcaption, .note { font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.86rem; line-height:1.5; color:var(--ink-soft); border-left:2px solid var(--rule); padding-left:.8rem; }
+  .figframe { background:var(--surface); border:1px solid var(--rule-soft); border-radius:4px; padding:1.25rem 1rem; }
+  .scroll { overflow-x:auto; }
+  hr.keyline { border:0; border-top:1px solid var(--rule); margin:0; }
+  table { border-collapse:collapse; width:100%; font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.88rem; }
+  th,td { text-align:left; padding:.5rem .7rem; border-bottom:1px solid var(--rule-soft); vertical-align:top; }
+  th { font-weight:600; font-size:.72rem; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-soft); }
+  td.mono { font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .legend { display:flex; flex-wrap:wrap; gap:1rem 1.4rem; font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.8rem; color:var(--ink-soft); }
+  .legend span { display:inline-flex; align-items:center; gap:.45rem; }
+  .chip { width:.85rem; height:.85rem; border-radius:2px; flex:none; }
+  .chip-b { background:var(--business-bg); border:1.5px solid var(--business); }
+  .chip-p { background:var(--processing-bg); border:1.5px solid var(--processing); }
+  .chip-k { background:var(--ident-bg); border:1.5px solid var(--ident); }
+  .callout { background:var(--swap-bg); border-left:3px solid var(--swap); padding:.9rem 1.1rem; border-radius:0 3px 3px 0; }
+  .callout p { font-size:.98rem; }
+  a { color:var(--processing); }
+  :focus-visible { outline:2px solid var(--processing); outline-offset:2px; }
+  footer { border-top:1px solid var(--rule); padding-top:1.5rem; font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.85rem; color:var(--ink-soft); }
+  footer ul { margin:.4rem 0 1rem; padding-left:1.1rem; }
+  /* Prose keeps the 44rem column of the sibling pages; side-by-side figures may widen. */
+  .wrap > *, section > * { width:100%; max-width:44rem; margin-left:auto; margin-right:auto; }
+  .wrap > section { max-width:none; }
+  section > .wide { max-width:64rem; }
+  .tb { color:var(--business-ink); }
+  .tp { color:var(--processing); }
+  .tk { color:var(--ident); }
+  .dim { color:var(--ink-soft); }
+  .tag { font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-soft); margin:0 0 .35rem; }
+  .pairs { display:flex; flex-direction:column; gap:1.6rem; }
+  .pair { display:grid; grid-template-columns:minmax(0,1fr); gap:.8rem 1rem; }
+  .pair > h3 { grid-column:1/-1; margin:0; font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.95rem; font-weight:600; }
+  /* Stacked on a phone there is room for the page's normal code size; only the two-column layout
+     needs the smaller one to keep the widest item line from wrapping. */
+  .pair pre { font-size:.85rem; }
+  @media (min-width:60rem) {
+    .pair { grid-template-columns:minmax(0,20rem) minmax(0,1fr); }
+    .pair pre { font-size:.78rem; }
+  }
+  .seg { display:flex; flex-wrap:wrap; align-items:flex-start; gap:.45rem .2rem; margin-bottom:1.1rem; }
+  .seg:last-child { margin-bottom:0; }
+  .part { display:inline-flex; flex-direction:column; align-items:center; gap:.25rem; }
+  /* Tokens sit inside a --surface frame, so they take --code-bg: a --surface chip on a --surface
+     frame is invisible except for its border, in both themes. */
+  .part code { font-size:.95rem; padding:.3em .5em; background:var(--code-bg); border:1.5px solid var(--rule); }
+  .part code.sep { border-color:transparent; background:none; padding-inline:.05em; }
+  .part code.k { background:var(--ident-bg); border-color:var(--ident); }
+  .part code.p { background:var(--processing-bg); border-color:var(--processing); }
+  .part code.b { background:var(--business-bg); border-color:var(--business); }
+  .part small { font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.72rem; line-height:1.3; color:var(--ink-soft); text-align:center; max-width:11rem; }
+  td.clash { background:var(--swap-bg); color:var(--swap); }
+  td.clash em { font-family:"IBM Plex Sans",system-ui,sans-serif; font-style:normal; font-weight:600; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <nav class="crumbs" aria-label="Site">
+    <a href="./">← Reladynamo docs</a>
+    <a href="bitemporal-seam.html">The bitemporal seam</a>
+    <a href="query-planner.html">Planning a bitemporal query</a>
+    <a href="https://github.com/drompincen/reladynamo">GitHub</a>
+  </nav>
+
+  <header>
+    <p class="eyebrow">Reladynamo · storage layout</p>
+    <h1>Your table on DynamoDB</h1>
+    <p class="lede">The same bitemporal rows twice: as the relational table Reladomo already knows, and
+      as the DynamoDB items Reladynamo writes, byte for byte.</p>
+  </header>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>One row, one item</h2>
+    <p>Reladynamo does not reshape your data. Each Reladomo object gets its own table, each row becomes
+      one item, and each column becomes one attribute with the same name. DynamoDB also needs an
+      address for every item, a partition key and a sort key, and Reladynamo builds both from values
+      that are already in the row.</p>
+    <p>Nothing is summarised, nested or denormalised. If you can read the SQL table, you can read the
+      items. The key is the only new thing to learn.</p>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>The table you have</h2>
+    <p>Take the <code>Balance</code> object from the README. Two <code>AsOfAttribute</code>s make it
+      bitemporal, and the XML names every column:</p>
+<pre><code>&lt;AsOfAttribute name="businessDate"   fromColumnName="<span class="tb">FROM_Z</span>" toColumnName="<span class="tb">THRU_Z</span>" … isProcessingDate="false"
+               futureExpiringRowsExist="true" …/&gt;
+&lt;AsOfAttribute name="processingDate" fromColumnName="<span class="tp">IN_Z</span>"   toColumnName="<span class="tp">OUT_Z</span>"  … isProcessingDate="true"  …/&gt;
+&lt;Attribute name="balanceId" javaType="int"    columnName="<span class="tk">BALANCE_ID</span>" primaryKey="true"/&gt;
+&lt;Attribute name="quantity"  javaType="double" columnName="QUANTITY"/&gt;</code></pre>
+    <p class="note">The README's snippet leaves <code>futureExpiringRowsExist</code> off; this page sets
+      it, because it changes the rows below. Without it, when Reladomo closes an open-ended row that has
+      already started it <em>also</em> cuts that row's <code>THRU_Z</code> back to the transaction time
+      plus one day (<code>GenericBiTemporalDirector.inactivateObject</code>), so row A would carry
+      <code>THRU_Z 2026-06-16 14:02:31.250</code> instead of infinity. The CRM demo's
+      <code>Customer</code> omits the flag, and its history shows exactly that.</p>
+    <p>A balance of 10 is entered on 5 January, true from 1 January. On 15 June someone learns it
+      should have been 99 from 1 March. Reladomo's <code>TemporalDirector</code>, not the adapter,
+      leaves three rows behind:</p>
+    <div class="scroll wide">
+      <table>
+        <thead><tr><th>Row</th><th class="tk">BALANCE_ID</th><th>QUANTITY</th><th class="tb">FROM_Z</th><th class="tb">THRU_Z</th><th class="tp">IN_Z</th><th class="tp">OUT_Z</th></tr></thead>
+        <tbody>
+          <tr><td><strong>A</strong></td><td class="mono tk">42</td><td class="mono">10.0</td><td class="mono tb">2026-01-01<br>00:00:00.000</td><td class="mono tb">9999-12-01<br>23:59:00.000</td><td class="mono tp">2026-01-05<br>09:30:00.000</td><td class="mono tp">2026-06-15<br>14:02:31.250</td></tr>
+          <tr><td><strong>B</strong></td><td class="mono tk">42</td><td class="mono">10.0</td><td class="mono tb">2026-01-01<br>00:00:00.000</td><td class="mono tb">2026-03-01<br>00:00:00.000</td><td class="mono tp">2026-06-15<br>14:02:31.250</td><td class="mono tp">9999-12-01<br>23:59:00.000</td></tr>
+          <tr><td><strong>C</strong></td><td class="mono tk">42</td><td class="mono">99.0</td><td class="mono tb">2026-03-01<br>00:00:00.000</td><td class="mono tb">9999-12-01<br>23:59:00.000</td><td class="mono tp">2026-06-15<br>14:02:31.250</td><td class="mono tp">9999-12-01<br>23:59:00.000</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="legend">
+      <span><i class="chip chip-k"></i> identity</span>
+      <span><i class="chip chip-b"></i> business time: when it was true</span>
+      <span><i class="chip chip-p"></i> processing time: when we knew</span>
+    </div>
+    <p class="note"><code>9999-12-01 23:59:00.000</code> is Reladomo's infinity. Row A is the original
+      belief, closed at the moment the correction was recorded. B and C are what is believed now.</p>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>The same three rows, as items</h2>
+    <p>This is what <code>DynamoDbWriter</code> puts in table <code>BALANCE</code> for each row. It is
+      shown in DynamoDB's JSON wire format, in the order the writer assembles the item, with each
+      column lined up against the attribute it became.</p>
+    <div class="pairs wide">
+      <div class="pair">
+        <h3>A · the January belief, closed in June</h3>
+        <div><p class="tag">Relational row</p>
+<pre><span class="dim">-- row A</span>
+<span class="dim">-- no column</span>
+BALANCE_ID  <span class="tk">42</span>
+QUANTITY    10.0
+FROM_Z      <span class="tb">2026-01-01 00:00:00.000</span>
+THRU_Z      <span class="tb">9999-12-01 23:59:00.000</span>
+IN_Z        <span class="tp">2026-01-05 09:30:00.000</span>
+OUT_Z       <span class="tp">2026-06-15 14:02:31.250</span>
+<span class="dim">-- built from BALANCE_ID</span>
+<span class="dim">-- built from IN_Z, FROM_Z</span></pre></div>
+        <div><p class="tag">DynamoDB item</p>
+<pre>{
+  "_rd_v":      {"N": "1"},
+  "BALANCE_ID": {"N": "<span class="tk">42</span>"},
+  "QUANTITY":   {"B": "QCQAAAAAAAA="},
+  "FROM_Z":     {"S": "<span class="tb">20260101000000000</span>"},
+  "THRU_Z":     {"S": "<span class="tb">99991201235900000</span>"},
+  "IN_Z":       {"S": "<span class="tp">20260105093000000</span>"},
+  "OUT_Z":      {"S": "<span class="tp">20260615140231250</span>"},
+  "pk":         {"S": "v1#<span class="tk">BALANCE</span>#<span class="tk">42</span>"},
+  "sk":         {"S": "v1#P#<span class="tp">20260105093000000</span>#B#<span class="tb">20260101000000000</span>"}
+}</pre></div>
+      </div>
+      <div class="pair">
+        <h3>B · 10 from January to March, known since June</h3>
+        <div><p class="tag">Relational row</p>
+<pre><span class="dim">-- row B</span>
+<span class="dim">-- no column</span>
+BALANCE_ID  <span class="tk">42</span>
+QUANTITY    10.0
+FROM_Z      <span class="tb">2026-01-01 00:00:00.000</span>
+THRU_Z      <span class="tb">2026-03-01 00:00:00.000</span>
+IN_Z        <span class="tp">2026-06-15 14:02:31.250</span>
+OUT_Z       <span class="tp">9999-12-01 23:59:00.000</span>
+<span class="dim">-- built from BALANCE_ID</span>
+<span class="dim">-- built from IN_Z, FROM_Z</span></pre></div>
+        <div><p class="tag">DynamoDB item</p>
+<pre>{
+  "_rd_v":      {"N": "1"},
+  "BALANCE_ID": {"N": "<span class="tk">42</span>"},
+  "QUANTITY":   {"B": "QCQAAAAAAAA="},
+  "FROM_Z":     {"S": "<span class="tb">20260101000000000</span>"},
+  "THRU_Z":     {"S": "<span class="tb">20260301000000000</span>"},
+  "IN_Z":       {"S": "<span class="tp">20260615140231250</span>"},
+  "OUT_Z":      {"S": "<span class="tp">99991201235900000</span>"},
+  "pk":         {"S": "v1#<span class="tk">BALANCE</span>#<span class="tk">42</span>"},
+  "sk":         {"S": "v1#P#<span class="tp">20260615140231250</span>#B#<span class="tb">20260101000000000</span>"}
+}</pre></div>
+      </div>
+      <div class="pair">
+        <h3>C · 99 from March onward, known since June</h3>
+        <div><p class="tag">Relational row</p>
+<pre><span class="dim">-- row C</span>
+<span class="dim">-- no column</span>
+BALANCE_ID  <span class="tk">42</span>
+QUANTITY    99.0
+FROM_Z      <span class="tb">2026-03-01 00:00:00.000</span>
+THRU_Z      <span class="tb">9999-12-01 23:59:00.000</span>
+IN_Z        <span class="tp">2026-06-15 14:02:31.250</span>
+OUT_Z       <span class="tp">9999-12-01 23:59:00.000</span>
+<span class="dim">-- built from BALANCE_ID</span>
+<span class="dim">-- built from IN_Z, FROM_Z</span></pre></div>
+        <div><p class="tag">DynamoDB item</p>
+<pre>{
+  "_rd_v":      {"N": "1"},
+  "BALANCE_ID": {"N": "<span class="tk">42</span>"},
+  "QUANTITY":   {"B": "QFjAAAAAAAA="},
+  "FROM_Z":     {"S": "<span class="tb">20260301000000000</span>"},
+  "THRU_Z":     {"S": "<span class="tb">99991201235900000</span>"},
+  "IN_Z":       {"S": "<span class="tp">20260615140231250</span>"},
+  "OUT_Z":      {"S": "<span class="tp">99991201235900000</span>"},
+  "pk":         {"S": "v1#<span class="tk">BALANCE</span>#<span class="tk">42</span>"},
+  "sk":         {"S": "v1#P#<span class="tp">20260615140231250</span>#B#<span class="tb">20260301000000000</span>"}
+}</pre></div>
+      </div>
+    </div>
+    <p><code>THRU_Z</code> and <code>OUT_Z</code> are ordinary attributes, not part of the key. So when
+      June's correction closed row A, the write went to A's existing item: a Put conditioned on that
+      item still holding exactly what Reladomo last read. B and C are new items, written only if
+      <code>attribute_not_exists(pk)</code>.</p>
+    <p>Note that <code>QUANTITY</code> is not stored as a number. A <code>double</code> is stored as its
+      eight IEEE-754 bits, which DynamoDB JSON shows as base64: <code>QCQAAAAAAAA=</code> is
+      <code>0x4024000000000000</code>, exactly 10.0. The reason is <a href="#types">further down</a>.</p>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>How the keys are built</h2>
+    <div class="figframe">
+      <figure>
+        <div>
+          <p class="tag">Partition key · pk</p>
+          <div class="seg">
+            <span class="part"><code>v1</code><small>key grammar version</small></span><span class="part"><code class="sep">#</code></span><span class="part"><code class="k">BALANCE</code><small>simple class name, upper-cased</small></span><span class="part"><code class="sep">#</code></span><span class="part"><code class="k">42</code><small>balanceId, the only primary key</small></span>
+          </div>
+          <p class="tag">Sort key · sk (row C)</p>
+          <div class="seg">
+            <span class="part"><code>v1</code><small>same version</small></span><span class="part"><code class="sep">#P#</code></span><span class="part"><code class="p">20260615140231250</code><small>IN_Z, processing-from</small></span><span class="part"><code class="sep">#B#</code></span><span class="part"><code class="b">20260301000000000</code><small>FROM_Z, business-from</small></span>
+          </div>
+          <p class="tag">One timestamp (IN_Z)</p>
+          <div class="seg">
+            <span class="part"><code class="p">2026</code><small>year</small></span><span class="part"><code class="p">06</code><small>month</small></span><span class="part"><code class="p">15</code><small>day</small></span><span class="part"><code class="p">14</code><small>hour</small></span><span class="part"><code class="p">02</code><small>minute</small></span><span class="part"><code class="p">31</code><small>second</small></span><span class="part"><code class="p">250</code><small>millis, from getNanos()</small></span>
+          </div>
+        </div>
+        <figcaption>Row C's keys. The partition key names the object with its upper-cased simple class
+          name — not the table name, though for <code>Balance</code> the two coincide — then adds each
+          primary-key value in XML order. The sort key is processing-from, then business-from. No
+          separator appears inside a component: a <code>#</code> in a key value is refused
+          (<code>RELADYNAMO-CFG-008</code>).</figcaption>
+      </figure>
+    </div>
+    <p>Every timestamp is 17 digits: the UTC calendar fields <code>yyyyMMddHHmmssSSS</code>, zero-padded,
+      with milliseconds taken from <code>getNanos()</code>. It is not the familiar ISO-8601 form, and not epoch millis.
+      Because the width is fixed, byte order is time order. Because the digits are calendar fields
+      rather than a signed epoch offset, that stays true before 1970. Infinity has no special token:
+      <code>99991201235900000</code> is an ordinary timestamp that sorts after every real date, and it
+      decodes back to the configured sentinel by value.</p>
+    <p>Timestamp columns in the item use the same form, so the <code>FROM_Z</code> attribute holds exactly
+      the string that ends the sort key. A payload <code>Timestamp</code> with sub-millisecond nanos is
+      refused, not truncated.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Case</th><th>Key</th></tr></thead>
+        <tbody>
+          <tr><td>Composite primary key, XML order</td><td class="mono">v1#POSITION#42#7</td></tr>
+          <tr><td><code>boolean</code> / <code>BigDecimal</code> / <code>byte[]</code> component</td><td class="mono">T · 100 (from 1E+2) · 0a1bff00</td></tr>
+          <tr><td>A <code>#</code> inside a key value · <code>float</code> or <code>double</code> key</td><td>refused</td></tr>
+          <tr><td>Business-only / audit-only sort key</td><td class="mono">v1#B#&lt;FROM&gt; · v1#P#&lt;IN&gt;</td></tr>
+          <tr><td>Non-dated sort key</td><td class="mono">v1#ND</td></tr>
+          <tr><td>Size limits, checked before the write</td><td>pk ≤ 2048 bytes · sk ≤ 1024 bytes</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>Why the sort key carries both clocks</h2>
+    <p>Look at where the three rows begin. A and B start on the same business date. B and C were
+      recorded at the same instant. Neither clock alone can tell them apart.</p>
+    <div class="figframe scroll">
+      <figure>
+        <svg viewBox="0 0 760 430" style="min-width:34rem" role="img" aria-label="Business time on the horizontal axis, processing time on the vertical. Rectangle A spans business January 1 to infinity and processing January 5 to June 15. Rectangles B and C sit above it from June 15 onward, B from January 1 to March 1 and C from March 1 onward. Each item is addressed by its lower-left corner. A and B share a business-from edge; B and C share a processing-from edge.">
+          <defs><marker id="ax" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker></defs>
+          <line x1="110" y1="360" x2="700" y2="360" stroke="currentColor" stroke-width="1.4" marker-end="url(#ax)"></line>
+          <line x1="110" y1="360" x2="110" y2="40" stroke="currentColor" stroke-width="1.4" marker-end="url(#ax)"></line>
+          <text x="405" y="416" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" font-weight="600" fill="var(--business)">business time: FROM_Z to THRU_Z</text>
+          <text x="-200" y="26" transform="rotate(-90)" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" font-weight="600" fill="var(--processing)">processing time: IN_Z to OUT_Z</text>
+          <g font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.75">
+            <text x="200" y="382" text-anchor="middle">Jan 1</text><text x="380" y="382" text-anchor="middle">Mar 1</text><text x="660" y="382" text-anchor="middle">∞</text>
+            <text x="98" y="304" text-anchor="end">Jan 5</text><text x="98" y="194" text-anchor="end">Jun 15</text><text x="98" y="74" text-anchor="end">∞</text>
+          </g>
+          <rect x="200" y="190" width="460" height="110" fill="var(--processing-bg)" stroke="var(--processing)" stroke-width="1.6"></rect>
+          <rect x="200" y="70" width="180" height="120" fill="var(--business-bg)" stroke="var(--business)" stroke-width="1.6"></rect>
+          <rect x="380" y="70" width="280" height="120" fill="var(--business-bg)" stroke="var(--business)" stroke-width="1.6"></rect>
+          <g text-anchor="middle" fill="currentColor">
+            <text x="440" y="243" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600">quantity 10</text>
+            <text x="440" y="261" font-family="IBM Plex Mono, monospace" font-size="10.5" opacity="0.75">what we believed Jan 5 – Jun 15</text>
+            <text x="290" y="123" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600">quantity 10</text>
+            <text x="290" y="141" font-family="IBM Plex Mono, monospace" font-size="10.5" opacity="0.75">Jan 1 – Mar 1</text>
+            <text x="520" y="123" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600">quantity 99</text>
+            <text x="520" y="141" font-family="IBM Plex Mono, monospace" font-size="10.5" opacity="0.75">Mar 1 onward</text>
+          </g>
+          <line x1="200" y1="48" x2="200" y2="370" stroke="var(--business)" stroke-width="2.2" stroke-dasharray="6 4"></line>
+          <text x="208" y="60" font-family="IBM Plex Sans, sans-serif" font-size="11.5" font-weight="600" fill="var(--business)">A and B: same FROM_Z</text>
+          <line x1="104" y1="190" x2="690" y2="190" stroke="var(--processing)" stroke-width="2.2" stroke-dasharray="6 4"></line>
+          <text x="652" y="181" text-anchor="end" font-family="IBM Plex Sans, sans-serif" font-size="11.5" font-weight="600" fill="var(--processing)">B and C: same IN_Z</text>
+          <g fill="currentColor" font-family="IBM Plex Sans, sans-serif" font-size="14" font-weight="700">
+            <circle cx="200" cy="300" r="6"></circle><text x="211" y="320">A</text>
+            <circle cx="200" cy="190" r="6"></circle><text x="211" y="181">B</text>
+            <circle cx="380" cy="190" r="6"></circle><text x="391" y="181">C</text>
+          </g>
+        </svg>
+        <figcaption>Each item is addressed by one corner of its rectangle, where processing-from meets
+          business-from. Corners can share a column or a row, but no two rectangles share a corner.
+          Only the pair is unique.</figcaption>
+      </figure>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Row</th><th>Business-from only</th><th>Processing-from only</th><th>Both: what is written</th></tr></thead>
+        <tbody>
+          <tr><td><strong>A</strong></td><td class="mono">v1#B#20260101000000000</td><td class="mono">v1#P#20260105093000000</td><td class="mono">v1#P#20260105093000000#B#20260101000000000</td></tr>
+          <tr><td><strong>B</strong></td><td class="mono clash">v1#B#20260101000000000 <em>= A</em></td><td class="mono">v1#P#20260615140231250</td><td class="mono">v1#P#20260615140231250#B#20260101000000000</td></tr>
+          <tr><td><strong>C</strong></td><td class="mono">v1#B#20260301000000000</td><td class="mono clash">v1#P#20260615140231250 <em>= B</em></td><td class="mono">v1#P#20260615140231250#B#20260301000000000</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Objects with only one clock need only one component, so business-only and audit-only objects get
+      <code>v1#B#…</code> and <code>v1#P#…</code>. A bitemporal row needs both. Putting processing time
+      first means a Query on <code>pk = v1#BALANCE#42</code> returns A, B, C in exactly this order: by when
+      they became known, then by business date. The cost is that a predicate on business date alone becomes a
+      filter, as explained in <a href="query-planner.html">Planning a bitemporal query</a>.</p>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>A table with no dates</h2>
+    <p>A non-dated object has no rectangles and one row per key, but it still gets a sort key. Here is
+      the <code>Car</code> object from the car-classifier demo, as its seed inserts the 1985 MR2:</p>
+    <div class="pairs wide">
+      <div class="pair">
+        <div><p class="tag">Relational row · CAR</p>
+<pre><span class="dim">-- row</span>
+<span class="dim">-- no column</span>
+CAR_ID       <span class="tk">1</span>
+CAR_YEAR     1985
+MAKE         Toyota
+MODEL        MR2
+WHEEL_COUNT  4
+COLOR_CODE   RED
+BODY_STYLE   COUPE
+ENGINE_CODE  4CYL
+<span class="dim">-- built from CAR_ID</span>
+<span class="dim">-- constant: no dates</span></pre></div>
+        <div><p class="tag">DynamoDB item</p>
+<pre>{
+  "_rd_v":       {"N": "1"},
+  "CAR_ID":      {"N": "<span class="tk">1</span>"},
+  "CAR_YEAR":    {"N": "1985"},
+  "MAKE":        {"S": "Toyota"},
+  "MODEL":       {"S": "MR2"},
+  "WHEEL_COUNT": {"N": "4"},
+  "COLOR_CODE":  {"S": "RED"},
+  "BODY_STYLE":  {"S": "COUPE"},
+  "ENGINE_CODE": {"S": "4CYL"},
+  "pk":          {"S": "v1#<span class="tk">CAR</span>#<span class="tk">1</span>"},
+  "sk":          {"S": "v1#ND"}
+}</pre></div>
+      </div>
+    </div>
+    <p><code>v1#ND</code> is a constant. It gives every Reladynamo table the same key schema,
+      <code>pk</code> plus <code>sk</code>, so table creation, the planner and the executor never have to
+      branch on whether an object is dated. A lookup by <code>carId</code> addresses
+      <code>(v1#CAR#1, v1#ND)</code>.</p>
+  </section>
+
+  <hr class="keyline">
+
+  <section id="types">
+    <h2>Column types on the wire</h2>
+    <p>Each attribute's DynamoDB type follows from the <code>javaType</code> in the XML. The examples
+      below are the literal values the codec tests expect:</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>javaType</th><th>Stored as</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td><code>int</code> <code>long</code> <code>short</code> <code>byte</code></td><td>N</td><td class="mono">{"N": "-128"}</td></tr>
+          <tr><td><code>boolean</code></td><td>BOOL</td><td class="mono">{"BOOL": false}</td></tr>
+          <tr><td><code>String</code>, <code>char</code></td><td>S (a lone surrogate <code>char</code>: N)</td><td class="mono">{"S": ""} · {"S": "A"}</td></tr>
+          <tr><td><code>Timestamp</code></td><td>S, 17 digits UTC</td><td class="mono">{"S": "20260615140231250"}</td></tr>
+          <tr><td><code>Date</code> · <code>Time</code></td><td>S, UTC</td><td class="mono">{"S": "2026-09-13"} · {"S": "14:30:00.123"}</td></tr>
+          <tr><td><code>BigDecimal</code></td><td>S, plain string</td><td class="mono">{"S": "1.10"}</td></tr>
+          <tr><td><code>double</code> · <code>float</code></td><td>B, raw IEEE-754 bits</td><td class="mono">{"B": "QCQAAAAAAAA="}</td></tr>
+          <tr><td><code>byte[]</code></td><td>B</td><td class="mono">{"B": "AAH/"}</td></tr>
+          <tr><td>any null value</td><td>NULL</td><td class="mono">{"NULL": true}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>BigDecimal is a string</strong> because DynamoDB's <code>N</code> type trims trailing
+      zeros. <code>1.10</code> would come back as <code>1.1</code>, which DynamoDB considers the same
+      number but Java does not: the scale drops from 2 to 1, <code>equals</code> fails, and money read
+      back no longer matches what H2 returns. <code>toPlainString()</code> keeps the scale. The value
+      must still fit <code>N</code>: more than 38 significant digits, a magnitude outside
+      1E-130 to 9.99…E+125, or a negative scale is refused rather than written.</p>
+    <p><strong>A double is bits</strong> because <code>N</code> cannot hold NaN, either infinity or
+      −0.0, and its exponent stops at 125 while a double reaches 308. Eight big-endian bytes round-trip
+      every value. The consequence: a condition on a <code>double</code>, like one on a
+      <code>BigDecimal</code>, is evaluated in memory after the read, not by DynamoDB.</p>
+    <p><strong>Null is written, never implied.</strong> A null column becomes <code>{"NULL": true}</code>,
+      never <code>0</code> or <code>false</code>, and an empty string stays <code>{"S": ""}</code>.
+      <code>QUANTITY</code> above has no <code>nullable</code> flag, so the parser treats it as nullable,
+      and a null quantity would be stored exactly that way. A null or empty primary-key value is refused.
+      On read, a missing attribute decodes as null if the column is nullable, so a later schema can add
+      columns. The only attributes left off when null are GSI keys, which is how an item drops out of an
+      index.</p>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>What else is on the item</h2>
+    <p>Exactly three attributes are not columns: <code>pk</code>, <code>sk</code> and <code>_rd_v</code>,
+      the codec version (<code>{"N": "1"}</code> today). A reader refuses an item with no
+      <code>_rd_v</code>, or with a version it does not know, rather than guessing at its layout. If you
+      configure a GSI, its key attributes are added too; these examples have none. Nothing else is
+      added: no type tag and no write timestamp.</p>
+    <p>Attribute names come from the XML <code>columnName</code>, or the Java attribute name if a column
+      has none. A mapping that puts a column on <code>pk</code>, <code>sk</code>, <code>_rd_v</code> or a
+      GSI key name is refused when it is built. DynamoDB's reserved words need no special handling: every
+      expression refers to attributes through placeholders (<code>#a0</code>, <code>#a1</code>, …,
+      <code>#rd_v</code>), whether or not the word is reserved today. The whole item, keys included, is
+      sized before it is sent, and anything over 400 KB is refused before it reaches DynamoDB.</p>
+    <div class="callout">
+      <p><strong>These examples assume the writing JVM runs in UTC.</strong> The adapter stores the
+        <code>Timestamp</code> Reladomo hands it as UTC calendar fields, and Reladomo's
+        <code>DefaultInfinityTimestamp</code> is <code>9999-12-01 23:59:00</code> in the JVM's
+        <em>default</em> timezone. From a JVM in America/Denver, the same infinity is written as
+        <code>99991202065900000</code> and midnight on 1 March as <code>20260301070000000</code>. Writers
+        in different timezones store different bytes for the same data.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Every value on this page was derived from the code and the literal expectations in its tests:</p>
+    <ul>
+      <li>Keys: <a href="https://github.com/drompincen/reladynamo/blob/main/reladynamo-core/src/main/java/io/reladynamo/core/key/DefaultKeyStrategy.java">DefaultKeyStrategy</a>, <a href="https://github.com/drompincen/reladynamo/blob/main/reladynamo-core/src/main/java/io/reladynamo/core/key/KeyComponentEncoder.java">KeyComponentEncoder</a>, <a href="https://github.com/drompincen/reladynamo/blob/main/reladynamo-core/src/test/java/io/reladynamo/core/key/DefaultKeyStrategyTest.java">DefaultKeyStrategyTest</a></li>
+      <li>Timestamps: <a href="https://github.com/drompincen/reladynamo/blob/main/reladynamo-core/src/main/java/io/reladynamo/core/temporal/TemporalEncoder.java">TemporalEncoder</a>, <a href="https://github.com/drompincen/reladynamo/blob/main/reladynamo-core/src/test/java/io/reladynamo/core/temporal/TemporalEncoderTest.java">TemporalEncoderTest</a></li>
+      <li>Attributes: <a href="https://github.com/drompincen/reladynamo/tree/main/reladynamo-ddb/src/main/java/io/reladynamo/ddb/codec">ItemCodec and AttributeValueCodec</a>, <a href="https://github.com/drompincen/reladynamo/tree/main/reladynamo-ddb/src/test/java/io/reladynamo/ddb/codec">ItemCodec*Test</a>, <a href="https://github.com/drompincen/reladynamo/blob/main/reladynamo-ddb/src/main/java/io/reladynamo/ddb/persist/DynamoDbWriter.java">DynamoDbWriter</a>, <a href="https://github.com/drompincen/reladynamo/blob/main/reladynamo-core/src/main/java/io/reladynamo/core/mapping/MithraObjectXmlParser.java">MithraObjectXmlParser</a></li>
+      <li>Infinity and timezones: <a href="https://github.com/drompincen/reladynamo/blob/main/docs/CONFORMANCE-FINDINGS.md">conformance findings 12 and 13</a></li>
+    </ul>
+    <p>Both design notes predate the implementation, and they do not agree with each other.
+      <a href="https://github.com/drompincen/reladynamo/blob/main/docs/design/01-xml-to-ddb-mapping.md">Note 01</a>
+      is the schema design; its provisional type table maps <code>BigDecimal</code> to <code>N</code>
+      (&ldquo;never store as <code>S</code>&rdquo;), <code>float</code>/<code>double</code> to
+      <code>N</code>, and <code>Timestamp</code> to ISO-8601
+      <code>yyyy-MM-dd'T'HH:mm:ss.SSS'Z'</code> — and it carries an amendment of its own superseding
+      that timestamp form with the 17-character one above.
+      <a href="https://github.com/drompincen/reladynamo/blob/main/docs/design/03-json-item-codec.md">Note 03</a>
+      claims authority over wire format and overrides that table: its §1.3 <em>decides</em>
+      <code>BigDecimal</code> → <code>S</code> as plain string, <code>float</code>/<code>double</code>
+      → <code>B</code>, and null as <code>NULL</code> rather than an omitted attribute. Those three are
+      what the code does. Where note 03 is not followed is naming: it proposes full Reladomo attribute
+      names on the wire, and the parser uses the XML <code>columnName</code>. Where any note differs
+      from the code, this page follows the code.</p>
+  </footer>
+
+</div>
+
+</body>
+</html>

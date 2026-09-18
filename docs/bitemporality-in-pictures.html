@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bitemporality in Pictures · Reladynamo</title>
+<meta name="description" content="Reladomo's bitemporal operations drawn as rectangles on a business-date by processing-date grid: insert, update, terminate, updateUntil and incrementUntil.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  :root {
+    color-scheme: light dark;
+    --ground:#F6F7F9; --surface:#FFFFFF; --ink:#16202E; --ink-soft:#55616F;
+    --rule:#D8DDE4; --rule-soft:#E8ECF1; --code-bg:#EDF0F4;
+    /* Same meaning as the bitemporal seam page. */
+    --business:#A8661B;   --business-bg:#F7EEE1;   /* what we believe now */
+    --processing:#1B6470; --processing-bg:#E2EFF1; /* what we believed then */
+    --swap:#9C2F49;       --swap-bg:#F8E7EB;       /* the moment we learned */
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:#10161F; --surface:#172230; --ink:#E4E9EF; --ink-soft:#9BA8B7;
+      --rule:#2C3A4B; --rule-soft:#222E3D; --code-bg:#1B2735;
+      --business:#E0A65A; --business-bg:#2E2415;
+      --processing:#5FB8C6; --processing-bg:#122C31;
+      --swap:#E8809A; --swap-bg:#331A22;
+    }
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; padding-block:2rem 6rem; padding-left:1.25rem; padding-right:1.25rem;
+    background:var(--ground); color:var(--ink);
+    font-family:"Source Serif 4",Georgia,serif; font-size:1.0625rem; line-height:1.65;
+  }
+  .wrap { max-width:44rem; margin:0 auto; display:flex; flex-direction:column; gap:2.75rem; }
+  .crumbs { font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.85rem;
+    display:flex; flex-wrap:wrap; gap:.4rem 1.2rem; margin-bottom:-1rem; }
+  .eyebrow { font-family:"IBM Plex Mono",monospace; font-size:.72rem; letter-spacing:.13em;
+    text-transform:uppercase; color:var(--ink-soft); margin:0 0 .5rem; }
+  h1 { font-family:"IBM Plex Sans",system-ui,sans-serif; font-weight:700;
+    font-size:clamp(2rem,6vw,2.9rem); line-height:1.08; letter-spacing:-.02em;
+    margin:0 0 .75rem; text-wrap:balance; }
+  h2 { font-family:"IBM Plex Sans",system-ui,sans-serif; font-weight:600; font-size:1.4rem;
+    line-height:1.2; letter-spacing:-.01em; margin:0 0 .6rem; text-wrap:balance; }
+  p { margin:0 0 1rem; } p:last-child { margin-bottom:0; }
+  .lede { font-size:1.2rem; line-height:1.55; color:var(--ink-soft); margin:0; }
+  strong { font-weight:600; }
+  code { font-family:"IBM Plex Mono",monospace; font-size:.85em; background:var(--code-bg);
+    padding:.12em .35em; border-radius:3px; overflow-wrap:anywhere; }
+  pre { font-family:"IBM Plex Mono",monospace; font-size:.85rem; line-height:1.5;
+    background:var(--code-bg); padding:.8rem 1rem; border-radius:4px; overflow-x:auto; margin:0; }
+  pre code { background:none; padding:0; font-size:inherit; overflow-wrap:normal; }
+  section { display:flex; flex-direction:column; gap:.9rem; }
+  figure { margin:0; display:flex; flex-direction:column; gap:.7rem; }
+  figure svg { display:block; width:100%; max-width:100%; height:auto; }
+  .scroll svg { min-width:36rem; }
+  figcaption { font-family:"IBM Plex Sans",sans-serif; font-size:.86rem; line-height:1.5;
+    color:var(--ink-soft); border-left:2px solid var(--rule); padding-left:.8rem; }
+  .figframe { background:var(--surface); border:1px solid var(--rule-soft); border-radius:4px;
+    padding:1.25rem 1rem; }
+  .scroll { overflow-x:auto; }
+  hr.keyline { border:0; border-top:1px solid var(--rule); margin:0; }
+  table { border-collapse:collapse; width:100%; font-family:"IBM Plex Sans",sans-serif; font-size:.88rem; }
+  th,td { text-align:left; padding:.5rem .7rem; border-bottom:1px solid var(--rule-soft); vertical-align:top; }
+  th { font-weight:600; font-size:.72rem; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-soft); }
+  td.mono { font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .legend { display:flex; flex-wrap:wrap; gap:1rem 1.4rem; font-family:"IBM Plex Sans",sans-serif;
+    font-size:.8rem; color:var(--ink-soft); }
+  .legend span { display:inline-flex; align-items:center; gap:.45rem; }
+  .chip { display:inline-block; width:.85rem; height:.85rem; border-radius:2px; flex:none; vertical-align:-.1em; margin-right:.35rem; }
+  .legend .chip { margin-right:0; }
+  .chip-b { background:var(--business-bg); border:1.5px solid var(--business); }
+  .chip-p { background:var(--processing-bg); border:1.5px solid var(--processing); }
+  .chip-s { background:var(--swap-bg); border:1.5px solid var(--swap); }
+  .chip-n { border:1.5px dashed var(--ink-soft); }
+  .callout { background:var(--swap-bg); border-left:3px solid var(--swap);
+    padding:.9rem 1.1rem; border-radius:0 3px 3px 0; }
+  .callout p { font-size:.98rem; }
+  footer { border-top:1px solid var(--rule); padding-top:1.5rem; font-family:"IBM Plex Sans",system-ui,sans-serif;
+    font-size:.85rem; color:var(--ink-soft); }
+  a { color:var(--processing); }
+  :focus-visible { outline:2px solid var(--processing); outline-offset:2px; }
+
+  /* SVG vocabulary: the same fills, strokes and type as the sibling pages, named once. */
+  svg .now  { fill:var(--business-bg); stroke:var(--business); stroke-width:1.6; }
+  svg .then { fill:var(--processing-bg); stroke:var(--processing); stroke-width:1.6; }
+  svg .gone { fill:none; stroke:currentColor; stroke-width:1.2; stroke-dasharray:5 4; opacity:.5; }
+  svg .tx   { fill:none; stroke:var(--swap); stroke-width:1.4; stroke-dasharray:5 4; }
+  svg .tk   { stroke:currentColor; stroke-width:1.2; }
+  svg .v { font:600 13px "IBM Plex Sans",sans-serif; fill:currentColor; text-anchor:middle; }
+  svg .m { font:10.5px "IBM Plex Mono",monospace; fill:currentColor; opacity:.75; text-anchor:middle; }
+  svg .l { text-anchor:start; } svg .e { text-anchor:end; }
+  svg .k { opacity:1; font-weight:500; }
+  svg .sw { fill:var(--swap); opacity:1; }
+  svg .soft { fill:var(--ink-soft); }
+  svg .dot { fill:currentColor; stroke:var(--surface); stroke-width:2; }
+
+  /* Step-through. Without script every figure shows its final state. */
+  .steps, .stepnote { display:none; }
+  .live .steps { display:flex; flex-wrap:wrap; gap:.4rem; }
+  .live .stepnote { display:block; }
+  .only0 { display:none; }
+  .live[data-step="0"] .only0 { display:inline; }
+  .live[data-step="0"] .s1, .live[data-step="0"] .s2, .live[data-step="1"] .s2 { display:none; }
+  .steps button { font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.82rem; line-height:1.3;
+    padding:.4rem .8rem; border-radius:4px; border:1px solid var(--rule); background:var(--surface);
+    color:var(--ink); cursor:pointer; }
+  .steps button[aria-pressed="true"] { border-color:var(--processing); background:var(--processing-bg); }
+  .stepnote { font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:.9rem; line-height:1.5; margin:0; min-height:3em; }
+  @media (prefers-reduced-motion: no-preference) {
+    a { transition:color 120ms ease; }
+    .live .only0, .live .s1, .live .s2 { animation:appear 260ms ease-out both; }
+    @keyframes appear { from { opacity:0; } to { opacity:1; } }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <g id="ax" font-family="IBM Plex Mono, monospace" font-size="10.5">
+      <path d="M90 330H686M90 330V38" fill="none" stroke="currentColor" stroke-width="1.4"></path>
+      <path d="M686 325l10 5-10 5zM85 38l5-10 5 10z" fill="currentColor"></path>
+      <text x="389" y="376" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" font-weight="600" fill="var(--business)">businessDate — when it was true</text>
+      <text x="-190" y="24" transform="rotate(-90)" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" font-weight="600" fill="var(--processing)">processingDate — when we recorded it</text>
+      <path d="M150 330v6M360 330v6M640 330v6M84 290h6M84 60h6" stroke="currentColor" stroke-width="1.2"></path>
+      <g fill="currentColor" opacity="0.75" text-anchor="middle"><text x="150" y="352">1 Jan</text><text x="360" y="352">1 Jun</text><text x="640" y="352">∞</text></g>
+      <g fill="currentColor" opacity="0.75" text-anchor="end"><text x="78" y="294">P0</text><text x="78" y="64">∞</text></g>
+    </g>
+  </defs>
+</svg>
+
+<div class="wrap">
+
+  <nav class="crumbs" aria-label="Site">
+    <a href="./">← Reladynamo docs</a>
+    <a href="bitemporal-seam.html">The bitemporal seam</a>
+    <a href="query-planner.html">Planning a bitemporal query</a>
+    <a href="https://github.com/drompincen/reladynamo">GitHub</a>
+  </nav>
+
+  <header>
+    <p class="eyebrow">Reladomo semantics · drawn to the row</p>
+    <h1>Bitemporality in pictures</h1>
+    <p class="lede">Every bitemporal row is a rectangle on a grid of two dates. Every write closes some
+      rectangles and adds others. Once you can see the rectangles, the API stops surprising you.</p>
+  </header>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>A row is a rectangle</h2>
+    <p>A bitemporal Reladomo object carries two date ranges. <strong>businessDate</strong> says when a
+      fact was true in the world. <strong>processingDate</strong> says when the database held that
+      belief. In the <code>DiffBalance</code> test model they are four columns: <code>FROM_Z</code> and
+      <code>THRU_Z</code> for business, <code>IN_Z</code> and <code>OUT_Z</code> for processing. Put
+      business time on the horizontal axis and processing time on the vertical axis, and each row
+      covers a rectangle.</p>
+    <p>Both ranges are half-open: <code>FROM_Z ≤ t &lt; THRU_Z</code>. A query "as of" a business
+      date and a processing date is a <em>point</em>, and at most one rectangle may contain it. A row
+      that is still believed has <code>OUT_Z</code> set to Reladomo's infinity sentinel
+      (<code>9999-12-01 23:59:00</code>). "As of now" asks for exactly that value. It does not use the
+      half-open test, because nothing is ever less than infinity.</p>
+
+    <pre><code>DiffBalance b = new DiffBalance(jan1);
+b.setQuantity(10.0);
+b.insert();          // processing time P0</code></pre>
+
+    <div class="figframe">
+      <figure>
+        <div class="scroll">
+          <svg viewBox="0 0 720 384" role="img" aria-label="Grid with business date across and processing date upward. One rectangle from 1 January to infinity on business time and from P0 to infinity on processing time holds quantity 10. A point as of 1 June now returns 10; a point before 1 January returns null; a point before P0 returns null.">
+            <use href="#ax"></use>
+            <rect class="now" x="150" y="60" width="490" height="230"></rect>
+            <text class="v" x="395" y="166">quantity = 10</text>
+            <text class="m" x="395" y="184">FROM_Z 1 Jan · THRU_Z ∞ · IN_Z P0 · OUT_Z ∞</text>
+            <circle class="dot" cx="360" cy="60" r="5"></circle>
+            <text class="m l k" x="372" y="50">as of 1 Jun, now → 10</text>
+            <circle class="dot" cx="118" cy="120" r="5"></circle>
+            <text class="m l k" x="100" y="100">before 1 Jan → null</text>
+            <circle class="dot" cx="360" cy="310" r="5"></circle>
+            <text class="m l k" x="372" y="314">as of 1 Jun, before P0 → null: not recorded yet</text>
+          </svg>
+        </div>
+        <figcaption><code>insert</code> opens one rectangle. <code>FROM_Z</code> is the object's business
+          date, <code>IN_Z</code> is the transaction's processing time, and both upper bounds are infinity
+          (<code>GenericBiTemporalDirector.insert</code>; pinned by
+          <code>infinity_sentinel_is_preserved_exactly_on_open_rows</code>).</figcaption>
+      </figure>
+    </div>
+
+    <div class="legend">
+      <span><i class="chip chip-p"></i> what we believed then</span>
+      <span><i class="chip chip-b"></i> what we believe now</span>
+      <span><i class="chip chip-s"></i> the moment we learned</span>
+      <span><i class="chip chip-n"></i> no row</span>
+    </div>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>The rule every write follows</h2>
+    <p>Processing time only moves forward. A write at processing time <code>P1</code> does exactly two
+      things. It sets <code>OUT_Z = P1</code> on each row it supersedes, and it inserts new rows with
+      <code>IN_Z = P1</code>. It never edits an existing row's values or its <code>IN_Z</code>. That has
+      a consequence people miss: a row can only be closed whole, so any part of it that did
+      <em>not</em> change is inserted again. Same value, new row.</p>
+    <p>Every picture below starts from the fixture the differential tests use: quantity
+      <code>10.0</code> inserted as of 1 Jan 2026 at <code>P0</code>. Then one operation runs on the
+      object found as of 1 Jun 2026, at a later <code>P1</code>. The tests pin both processing times
+      with <code>MithraTransaction.setProcessingStartTime</code>. Use the buttons to replay each write
+      one step at a time.</p>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2><code>update</code>: one setter, three rows</h2>
+    <p>A plain setter is an update from the as-of date to infinity. On a row that started earlier, the
+      director closes that row, re-inserts the unchanged part before the as-of date (the head), and
+      inserts the new value from the as-of date on.</p>
+    <pre><code>found.setQuantity(55.0); // as of 1 Jun, at P1</code></pre>
+
+    <div class="figframe">
+      <figure class="stepper" data-step="2">
+        <div class="scroll">
+          <svg viewBox="0 0 720 384" role="img" aria-label="After update: the original rectangle is closed at P1 and kept as history with quantity 10. Above P1, quantity 10 from 1 January to 1 June, and quantity 55 from 1 June to infinity. As of 1 June at P0 the answer is 10; as of 1 June now it is 55.">
+            <use href="#ax"></use>
+            <g class="only0"><rect class="now" x="150" y="60" width="490" height="230"></rect><text class="v" x="395" y="170">quantity = 10</text><text class="m" x="395" y="188">[1 Jan, ∞) × [P0, ∞)</text></g>
+            <g class="s1"><rect class="then" x="150" y="180" width="490" height="110"></rect><text class="v" x="255" y="228">10</text><text class="m" x="255" y="246">OUT_Z set to P1</text><path class="tk" d="M84 180h6" style="stroke:var(--swap)"></path><text class="m e sw" x="78" y="184">P1</text></g>
+            <g class="s2"><rect class="now" x="150" y="60" width="210" height="120"></rect><text class="v" x="255" y="116">10</text><text class="m" x="255" y="134">same value, new row</text><rect class="now" x="360" y="60" width="280" height="120"></rect><text class="v" x="500" y="116">quantity = 55</text><text class="m" x="500" y="134">[1 Jun, ∞) × [P1, ∞)</text></g>
+            <g class="s1"><path class="tx" d="M90 180H686"></path></g>
+            <g class="s2"><circle class="dot" cx="360" cy="262" r="5"></circle><text class="m l k" x="372" y="266">as of 1 Jun, P0 → 10</text><circle class="dot" cx="360" cy="60" r="5"></circle><text class="m l k" x="372" y="50">as of 1 Jun, now → 55</text></g>
+          </svg>
+        </div>
+        <div class="steps" role="group" aria-label="Step through update">
+          <button type="button" data-note="Before: one row, quantity 10 from 1 Jan, recorded at P0.">1 · Before</button>
+          <button type="button" data-note="Close: the director sets OUT_Z = P1 on the row it supersedes. Nothing else about that row changes, ever.">2 · Close</button>
+          <button type="button" data-note="Add: two rows with IN_Z = P1. The head keeps 10 up to 1 Jun (THRU_Z is exclusive); 55 runs from 1 Jun on.">3 · Add</button>
+        </div>
+        <p class="stepnote"></p>
+        <figcaption>Three rectangles are what H2 produced for this exact operation in
+          <code>BoundWritePathTest.a_bound_update_produces_the_same_bitemporal_shape_as_h2</code> —
+          insert 10.0 as of 1 Jan, <code>setQuantity(55.0)</code> as of 1 Jun — and
+          <a href="https://github.com/drompincen/reladynamo/blob/main/docs/CONFORMANCE-FINDINGS.md">finding 21</a>
+          records those three rows literally. That test compares all four boundaries of every version
+          against H2. A point on the 1 Jun edge belongs to the rectangle that starts there.</figcaption>
+      </figure>
+    </div>
+
+    <table>
+      <thead><tr><th>quantity</th><th>business</th><th>processing</th></tr></thead>
+      <tbody>
+        <tr><td class="mono"><i class="chip chip-p"></i>10</td><td class="mono">[1 Jan, ∞)</td><td class="mono">[P0, P1)</td></tr>
+        <tr><td class="mono"><i class="chip chip-b"></i>10</td><td class="mono">[1 Jan, 1 Jun)</td><td class="mono">[P1, ∞)</td></tr>
+        <tr><td class="mono"><i class="chip chip-b"></i>55</td><td class="mono">[1 Jun, ∞)</td><td class="mono">[P1, ∞)</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <p><strong>Finding 21 was this picture without step 2.</strong> The adapter wrote the superseded
+        row back without applying the <code>OUT_Z</code> change, so it stayed <code>[P0, ∞)</code> and
+        two rows claimed to be current. The row count, the values and the business boundaries all
+        matched. Only a comparison of all four boundaries caught it.</p>
+    </div>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2><code>terminate</code>: keep the head, drop the tail</h2>
+    <p><code>terminate</code> ends existence from the as-of date on. It works like an update with no
+      new value: close the row, re-insert the head, and insert nothing after it.</p>
+    <pre><code>found.terminate(); // as of 1 Jun, at P1</code></pre>
+
+    <div class="figframe">
+      <figure class="stepper" data-step="2">
+        <div class="scroll">
+          <svg viewBox="0 0 720 384" role="img" aria-label="After terminate: the original rectangle is closed at P1 as history with quantity 10. Above P1, quantity 10 from 1 January to 1 June, and no row from 1 June on, so a current query as of 1 June returns null.">
+            <use href="#ax"></use>
+            <g class="only0"><rect class="now" x="150" y="60" width="490" height="230"></rect><text class="v" x="395" y="170">quantity = 10</text><text class="m" x="395" y="188">[1 Jan, ∞) × [P0, ∞)</text></g>
+            <g class="s1"><rect class="then" x="150" y="180" width="490" height="110"></rect><text class="v" x="255" y="228">10</text><text class="m" x="255" y="246">OUT_Z set to P1</text><path class="tk" d="M84 180h6" style="stroke:var(--swap)"></path><text class="m e sw" x="78" y="184">P1</text></g>
+            <g class="s2"><rect class="now" x="150" y="60" width="210" height="120"></rect><text class="v" x="255" y="116">10</text><text class="m" x="255" y="134">same value, new row</text><rect class="gone" x="360" y="60" width="280" height="120"></rect><text class="v soft" x="500" y="116">no row</text><text class="m" x="500" y="134">as of 1 Jun, now → null</text></g>
+            <g class="s1"><path class="tx" d="M90 180H686"></path></g>
+            <g class="s2"><circle class="dot" cx="360" cy="262" r="5"></circle><text class="m l k" x="372" y="266">as of 1 Jun, P0 → 10</text></g>
+          </svg>
+        </div>
+        <div class="steps" role="group" aria-label="Step through terminate">
+          <button type="button" data-note="Before: one row, quantity 10 from 1 Jan, recorded at P0.">1 · Before</button>
+          <button type="button" data-note="Close: OUT_Z = P1 on the row. What we believed before P1 is still answerable.">2 · Close</button>
+          <button type="button" data-note="Add: only the head, [1 Jan, 1 Jun). Nothing is inserted from 1 Jun on, so a current query there returns null.">3 · Add</button>
+        </div>
+        <p class="stepnote"></p>
+        <figcaption>Current as of 1 Jan still returns the row and as of 1 Jun returns null
+          (<code>terminate_from_the_middle_then_reinsert_later_round_trips</code>). A stored version must
+          carry a finite <code>OUT_Z</code> (<code>BoundWritePathTest</code>). Terminating as of the row's
+          own <code>FROM_Z</code> leaves no head, so the row is only closed
+          (<code>chained_terminate_then_reinsert_round_trips</code>).</figcaption>
+      </figure>
+    </div>
+
+    <table>
+      <thead><tr><th>quantity</th><th>business</th><th>processing</th></tr></thead>
+      <tbody>
+        <tr><td class="mono"><i class="chip chip-p"></i>10</td><td class="mono">[1 Jan, ∞)</td><td class="mono">[P0, P1)</td></tr>
+        <tr><td class="mono"><i class="chip chip-b"></i>10</td><td class="mono">[1 Jan, 1 Jun)</td><td class="mono">[P1, ∞)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2><code>updateUntil</code>: a window, not a tail</h2>
+    <p>The generated <code>setXUntil(value, until)</code> changes <code>[asOf, until)</code> and nothing
+      else. <code>until</code> is exclusive, so on the <code>until</code> date itself the old value is
+      back.</p>
+    <pre><code>found.setQuantityUntil(77.0, sep1); // as of 1 Jun</code></pre>
+
+    <div class="figframe">
+      <figure class="stepper" data-step="2">
+        <div class="scroll">
+          <svg viewBox="0 0 720 384" role="img" aria-label="After updateUntil: the original rectangle is closed at P1. Above P1 there are three rows: 10 from 1 January to 1 June, 77 from 1 June to 1 September, and 10 again from 1 September to infinity. As of 1 September the answer is 10, not 77.">
+            <use href="#ax"></use>
+            <path class="tk" d="M500 330v6"></path><text class="m" x="500" y="352">1 Sep</text>
+            <g class="only0"><rect class="now" x="150" y="60" width="490" height="230"></rect><text class="v" x="395" y="170">quantity = 10</text><text class="m" x="395" y="188">[1 Jan, ∞) × [P0, ∞)</text></g>
+            <g class="s1"><rect class="then" x="150" y="180" width="490" height="110"></rect><text class="v" x="255" y="228">10</text><text class="m" x="255" y="246">OUT_Z set to P1</text><path class="tk" d="M84 180h6" style="stroke:var(--swap)"></path><text class="m e sw" x="78" y="184">P1</text></g>
+            <g class="s2"><rect class="now" x="150" y="60" width="210" height="120"></rect><text class="v" x="255" y="116">10</text><text class="m" x="255" y="134">same value, new row</text><rect class="now" x="360" y="60" width="140" height="120"></rect><text class="v" x="430" y="116">77</text><text class="m" x="430" y="134">[1 Jun, 1 Sep)</text><rect class="now" x="500" y="60" width="140" height="120"></rect><text class="v" x="570" y="116">10</text><text class="m" x="570" y="134">copied back</text></g>
+            <g class="s1"><path class="tx" d="M90 180H686"></path></g>
+            <g class="s2"><circle class="dot" cx="500" cy="60" r="5"></circle><text class="m k" x="500" y="50">as of 1 Sep → 10, not 77</text></g>
+          </svg>
+        </div>
+        <div class="steps" role="group" aria-label="Step through updateUntil">
+          <button type="button" data-note="Before: one row, quantity 10 from 1 Jan, recorded at P0.">1 · Before</button>
+          <button type="button" data-note="Close: OUT_Z = P1 on the one row the window overlaps.">2 · Close</button>
+          <button type="button" data-note="Add: three rows with IN_Z = P1. The head, 77 inside [1 Jun, 1 Sep), and the old value copied back from 1 Sep.">3 · Add</button>
+        </div>
+        <p class="stepnote"></p>
+        <figcaption>Traced through <code>GenericBiTemporalDirector.updateUntil</code>:
+          <code>splitTailEnd</code> copies <code>[1 Sep, ∞)</code> back, the head is cut at 1 Jun, and the
+          window is inserted. <code>BitemporalOperationMatrixTest.updateUntil_round_trips_identically</code>
+          runs this fixture exactly — <code>setQuantityUntil(77.0, 1 Sep)</code> as of 1 Jun — and checks
+          that DynamoDB stores whatever H2's director produced, boundary for boundary. That the old value
+          comes back after the window is asserted on values by the CRM demo's price book: 100.00 before,
+          80.00 inside an <code>updateUntil</code> window, 100.00 again after it. The three new rows share
+          <code>IN_Z</code> but not <code>FROM_Z</code>, so their DynamoDB sort keys
+          <code>v1#P#…#B#…</code> stay distinct.</figcaption>
+      </figure>
+    </div>
+
+    <table>
+      <thead><tr><th>quantity</th><th>business</th><th>processing</th></tr></thead>
+      <tbody>
+        <tr><td class="mono"><i class="chip chip-p"></i>10</td><td class="mono">[1 Jan, ∞)</td><td class="mono">[P0, P1)</td></tr>
+        <tr><td class="mono"><i class="chip chip-b"></i>10</td><td class="mono">[1 Jan, 1 Jun)</td><td class="mono">[P1, ∞)</td></tr>
+        <tr><td class="mono"><i class="chip chip-b"></i>77</td><td class="mono">[1 Jun, 1 Sep)</td><td class="mono">[P1, ∞)</td></tr>
+        <tr><td class="mono"><i class="chip chip-b"></i>10</td><td class="mono">[1 Sep, ∞)</td><td class="mono">[P1, ∞)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2><code>incrementUntil</code>: a delta inside the window</h2>
+    <p><code>incrementXUntil(delta, until)</code> adds to a numeric attribute over
+      <code>[asOf, until)</code>. The rectangles are the same as for <code>updateUntil</code>. The
+      difference is where the number comes from. The window row is a copy of the row it overlaps, with
+      the delta added to that copy, so it reads <code>10 + 1.5</code>. Outside the window, values are
+      copied unchanged.</p>
+    <pre><code>found.incrementQuantityUntil(1.5, sep1); // as of 1 Jun</code></pre>
+
+    <div class="figframe">
+      <figure class="stepper" data-step="2">
+        <div class="scroll">
+          <svg viewBox="0 0 720 384" role="img" aria-label="After incrementUntil: the original rectangle is closed at P1 with quantity 10. Above P1: 10 from 1 January to 1 June, 11.5 from 1 June to 1 September, and 10 from 1 September to infinity.">
+            <use href="#ax"></use>
+            <path class="tk" d="M500 330v6"></path><text class="m" x="500" y="352">1 Sep</text>
+            <g class="only0"><rect class="now" x="150" y="60" width="490" height="230"></rect><text class="v" x="395" y="170">quantity = 10</text><text class="m" x="395" y="188">[1 Jan, ∞) × [P0, ∞)</text></g>
+            <g class="s1"><rect class="then" x="150" y="180" width="490" height="110"></rect><text class="v" x="255" y="228">10</text><text class="m" x="255" y="246">OUT_Z set to P1</text><path class="tk" d="M84 180h6" style="stroke:var(--swap)"></path><text class="m e sw" x="78" y="184">P1</text></g>
+            <g class="s2"><rect class="now" x="150" y="60" width="210" height="120"></rect><text class="v" x="255" y="116">10</text><text class="m" x="255" y="134">same value, new row</text><rect class="now" x="360" y="60" width="140" height="120"></rect><text class="v" x="430" y="116">11.5</text><text class="m" x="430" y="134">10 + 1.5</text><rect class="now" x="500" y="60" width="140" height="120"></rect><text class="v" x="570" y="116">10</text><text class="m" x="570" y="134">copied back</text></g>
+            <g class="s1"><path class="tx" d="M90 180H686"></path></g>
+          </svg>
+        </div>
+        <div class="steps" role="group" aria-label="Step through incrementUntil">
+          <button type="button" data-note="Before: one row, quantity 10 from 1 Jan, recorded at P0.">1 · Before</button>
+          <button type="button" data-note="Close: OUT_Z = P1 on the row the window overlaps. Its 10 is still there, as history.">2 · Close</button>
+          <button type="button" data-note="Add: the head keeps 10, the window [1 Jun, 1 Sep) gets 10 + 1.5, and 10 is copied back from 1 Sep. All three have IN_Z = P1.">3 · Add</button>
+        </div>
+        <p class="stepnote"></p>
+        <figcaption>Traced through <code>incrementMultipleWrappersUntil</code> and
+          <code>getObjectToInsertForIncrementUntil</code>. That code trims each overlapping row to the
+          window and adds the delta to its copy, so a window across two rows with different values
+          increments each one. <code>BitemporalOperationMatrixTest.incrementUntil_round_trips_identically</code>
+          runs this fixture exactly — <code>incrementQuantityUntil(1.5, 1 Sep)</code> as of 1 Jun — but it
+          asserts store agreement, not the arithmetic. The values are asserted on the CRM demo instead: a
+          100.00 price with <code>incrementUnitPriceUntil(5.00, 1 Aug)</code> reads 105.00 inside the
+          window and 100.00 after it
+          (<code>RequiredDemonstrationsTest.should_apply_updateUntil_and_incrementUntil_on_price_book_entry</code>).</figcaption>
+      </figure>
+    </div>
+
+    <table>
+      <thead><tr><th>quantity</th><th>business</th><th>processing</th></tr></thead>
+      <tbody>
+        <tr><td class="mono"><i class="chip chip-p"></i>10</td><td class="mono">[1 Jan, ∞)</td><td class="mono">[P0, P1)</td></tr>
+        <tr><td class="mono"><i class="chip chip-b"></i>10</td><td class="mono">[1 Jan, 1 Jun)</td><td class="mono">[P1, ∞)</td></tr>
+        <tr><td class="mono"><i class="chip chip-b"></i>11.5</td><td class="mono">[1 Jun, 1 Sep)</td><td class="mono">[P1, ∞)</td></tr>
+        <tr><td class="mono"><i class="chip chip-b"></i>10</td><td class="mono">[1 Sep, ∞)</td><td class="mono">[P1, ∞)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>What we said then, and what we should have said then</h2>
+    <p>The <a href="https://github.com/drompincen/reladynamo/tree/main/demos/03-car-classifier">car
+      classifier demo</a> stores decision-table rules bitemporally. On 12 Sep 2026 at 10:00, rule R8 is
+      recorded as valid from 2010: nineties cars are <code>CLASSIC</code>. At 11:00 a 1994 MX-5 is
+      classified as of 1 Jun 2012, and an audit row saying <code>CLASSIC</code> is written. At 12:00 we
+      learn the rule was wrong from the start and correct it to <code>ECONOMY</code>, as of its own
+      start date.</p>
+
+    <div class="figframe">
+      <figure>
+        <div class="scroll">
+          <svg viewBox="0 0 720 396" role="img" aria-label="Rule R8 on the grid. From 1 January 2010 to infinity in business time, CLASSIC was recorded at 10:00 and closed at 12:00, and ECONOMY has been recorded since 12:00. A vertical guide at business date 1 June 2012 crosses two points: at 11:00 it answers CLASSIC, what we said then; at processing infinity it answers ECONOMY, what we now think we should have said then.">
+            <path d="M90 340H686M90 340V38" fill="none" stroke="currentColor" stroke-width="1.4"></path>
+            <path d="M686 335l10 5-10 5zM85 38l5-10 5 10z" fill="currentColor"></path>
+            <text x="389" y="388" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" font-weight="600" fill="var(--business)">businessDate — when the rule was valid</text>
+            <text x="-200" y="24" transform="rotate(-90)" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" font-weight="600" fill="var(--processing)">processingDate · 12 Sep 2026</text>
+            <path class="tk" d="M150 340v6M300 340v6M640 340v6M84 300h6M84 250h6M84 60h6"></path>
+            <text class="m" x="150" y="362">1 Jan 2010</text><text class="m" x="300" y="362">1 Jun 2012</text><text class="m" x="640" y="362">∞</text>
+            <text class="m e" x="78" y="304">10:00</text><text class="m e" x="78" y="254">11:00</text><text class="m e" x="78" y="64">∞</text>
+            <rect class="then" x="150" y="170" width="490" height="130"></rect>
+            <text class="v" x="470" y="202">R8 → CLASSIC</text><text class="m" x="470" y="220">recorded 10:00 · closed 12:00</text>
+            <rect class="now" x="150" y="60" width="490" height="110"></rect>
+            <text class="v" x="470" y="106">R8 → ECONOMY</text><text class="m" x="470" y="124">recorded 12:00 · still current</text>
+            <path d="M300 340V60" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 3" opacity="0.45"></path>
+            <path class="tx" d="M90 170H686"></path>
+            <path d="M84 170h6" stroke="var(--swap)" stroke-width="1.2"></path><text class="m e sw" x="78" y="174">12:00</text>
+            <circle class="dot" cx="300" cy="250" r="5"></circle>
+            <text class="m l k" x="312" y="262">what we said then: CLASSIC</text>
+            <text class="m l" x="312" y="278">the audit row, written at 11:00</text>
+            <circle class="dot" cx="300" cy="60" r="5"></circle>
+            <text class="m l k" x="312" y="50">what we now think we should have said then: ECONOMY</text>
+          </svg>
+        </div>
+        <figcaption>Asserted by
+          <code>ClassifierTest.should_diverge_from_audit_after_processing_date_correction</code>: R8 as of
+          2012 at 11:00 is <code>CLASSIC</code>, R8 as of 2012 now is <code>ECONOMY</code>, and the audit row
+          still says <code>CLASSIC</code>.</figcaption>
+      </figure>
+    </div>
+
+    <p>Nothing about 2012 changed. What changed is what we know about 2012. So the same business date has
+      two honest answers, one for each processing date. The point at 11:00 is <strong>what we said
+      then</strong>. The point at infinity is <strong>what we now think we should have said then</strong>.
+      Because the correction was made as of the row's own <code>FROM_Z</code>, there is no head to keep:
+      the whole rectangle is closed and recorded again.</p>
+  </section>
+
+  <hr class="keyline">
+
+  <section>
+    <h2>Where these pictures stop being true</h2>
+    <p>Each picture above holds for the fixture as drawn. These are the cases where the same call gives
+      different rectangles. Each one has already fooled a test in this repository.</p>
+    <table>
+      <tbody>
+        <tr><th style="width:34%">A late, unbounded correction</th><td><code>setQuantity</code> as of March, after a June update, covers <code>[March, ∞)</code>. It closes the June row too, and current June becomes the March value; the June value survives only as history. <code>setQuantityUntil(15.0, june)</code> fills only the gap. Finding 10, <code>late_arriving_fact_*</code> tests.</td></tr>
+        <tr><th>Two writes within 10 ms</th><td>Reladomo rounds processing time down to 10 ms. If a superseded row's <code>IN_Z</code> equals the new transaction's time, the row is deleted instead of closed, and no history rectangle remains. Finding 11, <code>same_millisecond_*</code> tests.</td></tr>
+        <tr><th>No <code>futureExpiringRowsExist</code></th><td>Closing an open-ended row that has already started also cuts its <code>THRU_Z</code> back to the transaction time plus one day (<code>inactivateObject</code>). The <a href="https://github.com/drompincen/reladynamo/tree/main/demos/01-crm-bitemporal">CRM demo</a>'s <code>Customer</code> omits the flag, and its own history dump shows the consequence: a row closed at 2025-03-10 09:00 carries business thru 2025-03-11 09:00. <code>DiffBalance</code> and the classifier's <code>ClassificationRule</code> set it, as drawn here.</td></tr>
+        <tr><th><code>setXUsingInPlaceUpdate</code></th><td>Rewrites the payload of the existing rectangle and keeps all four timestamps. It is meant for repair and deliberately leaves no history. Finding 6.</td></tr>
+      </tbody>
+    </table>
+    <p>Reladynamo draws none of these rectangles itself. The director hands the persister plain inserts
+      and <code>OUT_Z</code> updates, and the
+      <a href="https://github.com/drompincen/reladynamo/tree/main/reladynamo-ddb/src/test/java/io/reladynamo/ddb/differential">differential
+      suite</a> checks all four boundaries of every rectangle against Reladomo running on H2.</p>
+  </section>
+
+  <footer>
+    <p>Every rectangle on this page was traced through <code>GenericBiTemporalDirector</code> in Reladomo
+      18.1.0 and checked against the tests named in its caption. MIT licensed. See
+      <a href="https://github.com/drompincen/reladynamo/blob/main/LICENSE">LICENSE</a> and
+      <a href="https://github.com/drompincen/reladynamo/blob/main/docs/CONFORMANCE-FINDINGS.md">conformance findings</a>.</p>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var figs = document.querySelectorAll('figure.stepper');
+  Array.prototype.forEach.call(figs, function (f) {
+    var btns = f.querySelectorAll('.steps button');
+    var note = f.querySelector('.stepnote');
+    function go(n) {
+      f.setAttribute('data-step', String(n));
+      Array.prototype.forEach.call(btns, function (b, i) {
+        b.setAttribute('aria-pressed', i === n ? 'true' : 'false');
+      });
+      note.textContent = btns[n].getAttribute('data-note');
+    }
+    Array.prototype.forEach.call(btns, function (b, i) {
+      b.addEventListener('click', function () { go(i); });
+    });
+    f.classList.add('live');
+    go(btns.length - 1);
+    note.setAttribute('aria-live', 'polite');
+  });
+})();
+</script>
+
+</body>
+</html>

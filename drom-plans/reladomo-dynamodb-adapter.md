@@ -372,49 +372,63 @@ Prove "the same bitemporal features" rather than asserting it.
 - [ ] Gate: 100 % of the conformance suite passes identically on both backends
 
 ## Chapter 8: README and HTML explainers
-**Status:** in-progress — `README.md` written (187 lines, honest status table and a plainly stated
-limits section). First HTML explainer published: **The Bitemporal Seam**,
-https://claude.ai/code/artifact/5baee108-1d98-4425-87cb-7a0bbc559683 — three inline-SVG diagrams
-(where the adapter plugs in, the two axes, sort-key anatomy). Second published: **Planning a
-Bitemporal Query**, https://claude.ai/code/artifact/55fae26f-e916-4196-8b98-555528428c3e — predicate
-classification, why business date cannot be a range scan, the five plan kinds, the current-row fast
-path. Both linked from `README.md`.
+**Status:** **COMPLETE (2026-09-17).** `README.md` is 470 lines and now carries Install, the key
+design guide and Operations alongside what was already there. All five explainers are published, not
+as Artifacts but as pages on the project's GitHub Pages site (`docs/*.html`), which is where a reader
+of the repository will actually look for them; they are cross-linked from `README.md` and
+`docs/index.html`. Every shell block in `README.md` runs verbatim in CI, by explicit marker, and the
+job fails if a block is unmarked or if zero blocks are found.
 **Depends on:** 7
 
 Shipped documentation, not notes.
 
-- [ ] `README.md`: what it is, the bitemporal guarantee, MIT badge, 5-minute quickstart
-- [ ] **Install**: Maven coordinates, Java 11 baseline, dependency table
-- [ ] **Usage walkthrough**: take an existing Reladomo object model XML → add the Reladynamo runtime
-      config → run against DynamoDB with zero changes to generated code or finder call sites
-- [ ] Worked example in `reladynamo-examples`: a bitemporal `Customer`, runnable against both H2 and
-      DynamoDBLocal, with the commands to run each
-- [ ] **Key design guide**: default strategy, when to override, GSI rules (lean on `/dynamodb-architect`)
-- [ ] **Limits, stated plainly**: no cross-entity transactions beyond `TransactWriteItems`' 100-item
+- [x] `README.md`: what it is, the bitemporal guarantee, MIT badge, 5-minute quickstart
+- [x] **Install**: Maven coordinates, Java 11 baseline, dependency table — and the honest version of
+      the Java claim: `reladynamo-core` is proven on a real JDK 11, the DynamoDB modules cannot even be
+      compiled by a JDK 11 compiler because DynamoDB Local 2.5.3 is Java 17 bytecode
+- [x] **Usage walkthrough**: take an existing Reladomo object model XML → add the Reladynamo runtime
+      config → run against DynamoDB with zero changes to generated code or finder call sites.
+      Corrected on 2026-09-17: it showed the three-argument write-only persister, whose every read
+      refuses
+- [x] Worked example — **deviation, deliberate**: the three demo projects in `demos/` are the worked
+      examples, runnable against both H2 and DynamoDB Local. No `reladynamo-examples` module was
+      created; a fourth example beside three demos would be a fourth thing to keep in step
+- [x] **Key design guide**: default strategy, when to override (don't — the planner hard-codes the v1
+      key format), GSI rules
+- [x] **Limits, stated plainly**: no cross-entity transactions beyond `TransactWriteItems`' 100-item
       cap, no arbitrary-predicate queries without a Scan, 400 KB item ceiling, eventual-consistency
       semantics on GSIs
-- [ ] **Operations**: capacity planning, cost model, monitoring, the explain-plan output
-- [x] `CONTRIBUTING.md`, `LICENSE`, `THIRD-PARTY-NOTICES.md` — all three verified present
-- [ ] Every README command executed verbatim in CI so the docs cannot rot
+- [x] **Operations**: capacity planning, cost model, monitoring — stated as the absence it is, since
+      there is no metrics hook and no logging — and the explain-plan output
+- [x] `CONTRIBUTING.md`, `LICENSE`, `THIRD-PARTY-NOTICES.md` — all three verified present; jqwik and
+      JMH added to the notices on 2026-09-17
+- [x] Every README command executed verbatim in CI so the docs cannot rot
 
 ### HTML explainers (for Java developers)
 
-Self-contained, dark/light-aware HTML pages published as Artifacts — a Java developer who has never
+Self-contained, dark/light-aware HTML pages on the GitHub Pages site — a Java developer who has never
 seen DynamoDB should understand the adapter from these alone. Diagrams are inline SVG, not screenshots.
 
-- [ ] **"Where the adapter plugs in"** — the Reladomo call stack from `Finder` → portal →
-      `TemporalDirector` → persister, showing exactly which box we replace and which we inherit.
-      This is the single most important diagram in the project.
-- [ ] **"Bitemporality in pictures"** — businessDate vs processingDate on a 2-D grid; animate
-      `terminate`, `updateUntil`, `incrementUntil` as rectangle splits. Most engineers have never
-      had this explained visually and it is where all the bugs come from.
-- [ ] **"Your table on DynamoDB"** — the same `Customer` object rendered as relational rows and as
-      DynamoDB JSON items side by side, PK/SK construction highlighted component by component
-- [ ] **"From SQL query to DynamoDB query"** — a Reladomo `Operation` tree annotated with which
-      nodes become key conditions, which become filter expressions, which stay in memory
-- [ ] **"What you give up"** — transactions, arbitrary predicates, 400 KB items, GSI consistency,
-      stated honestly with the workaround for each
-- [ ] Every explainer cross-linked from `README.md`; **grok** drafts, **Claude** designs and publishes
+- [x] **"Where the adapter plugs in"** — `docs/bitemporal-seam.html`. The Reladomo call stack from
+      `Finder` → portal → `TemporalDirector` → persister, showing which box we replace and which we
+      inherit. This is the single most important diagram in the project.
+- [x] **"Bitemporality in pictures"** — `docs/bitemporality-in-pictures.html`. businessDate vs
+      processingDate on a 2-D grid, each operation stepped through as rectangle splits.
+- [x] **"Your table on DynamoDB"** — `docs/table-on-dynamodb.html`. The `Balance` object from the
+      README as relational rows and as DynamoDB items, PK/SK built component by component.
+- [x] **"From SQL query to DynamoDB query"** — `docs/query-planner.html`. Predicate classification,
+      why business date cannot be a range scan, the five plan kinds, the current-row fast path.
+- [x] **"What you give up"** — `docs/what-you-give-up.html`. Transactions, arbitrary predicates,
+      400 KB items, GSI consistency, each with its workaround.
+- [x] Every explainer cross-linked from `README.md` and `docs/index.html`
+
+**Every claim on the three new pages was verified against source in a second pass**, which is the only
+reason this chapter is closed rather than merely written. That pass found a wrong `TransactWriteItems`
+action count, an overstated "ten maximum-size items fill 4 MB" (it is 3.9 MB), citations that did not
+say what was claimed, a diagram whose tokens had vanished in a CSS change, and a defect in the
+README's own `Balance` example: it omitted `futureExpiringRowsExist`, which changes which rows
+Reladomo produces. Two captions were downgraded from "asserted" to "traced through the director
+source", because no test pins those boundaries coordinate-by-coordinate.
 
 ## Chapter 9: Three demo projects (`demos/`)
 **Status:** **COMPLETE.** All three run against **both H2 and DynamoDB**, with their object model XML

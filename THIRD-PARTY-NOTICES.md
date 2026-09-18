@@ -38,3 +38,14 @@ the same enforcer rule.
 
 ## JUnit 5 — Eclipse Public License 2.0 · AssertJ — Apache 2.0 · SLF4J — MIT
 Test and logging dependencies.
+
+## jqwik — Eclipse Public License 2.0 (test scope only)
+<https://jqwik.net>
+Property-based generation for the codec fidelity tests and the adversarial planner fuzzer. `test` scope,
+covered by the same enforcer rule.
+
+## JMH — GPL-2.0 with Classpath Exception (`reladynamo-bench` only)
+<https://openjdk.org/projects/code-tools/jmh/>
+The microbenchmark harness behind `docs/PERFORMANCE.md`. It is confined to the `reladynamo-bench` module,
+which is never published and is not on any consumer's classpath; no JMH code is distributed or linked by
+`reladynamo-core` or `reladynamo-ddb`.
