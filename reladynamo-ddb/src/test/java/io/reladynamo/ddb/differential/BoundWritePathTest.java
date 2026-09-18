@@ -216,9 +216,28 @@ class BoundWritePathTest {
 
     @Test
     void a_terminate_through_a_bound_portal_succeeds_or_names_what_is_missing() {
+        // Both transactions pin the processing clock, and to two DISTINCT instants. This is not
+        // cosmetic — the assertion below is only true when the terminate lands in a later processing
+        // instant than the insert, and on the wall clock it need not.
+        //
+        // GenericBiTemporalDirector stamps processing time as
+        //     new Timestamp(tx.getProcessingStartTime() / 10 * 10)   // "clamp for sybase"
+        // so every transaction start is rounded down to a 10 ms bucket. inactivateObject then reads:
+        //     if (processingFrom(oldData) == txStartTime) { warn("has changed too fast. Deleting,
+        //         instead of inactivating"); delete(...); }
+        // An insert and a terminate that start inside the same 10 ms bucket therefore PHYSICALLY
+        // DELETE the superseded version rather than closing its processing rectangle, leaving one
+        // row with businessTo cut and processingTo still infinity. Verified: with both transactions
+        // on one instant, H2 and DynamoDB produce byte-identical shapes —
+        //   qty=44.0 biz=[2025-12-31 17:00,2026-05-31 18:00) proc=[2026-04-01 03:00,9999-12-01 23:59)
+        // — so that outcome is Reladomo's semantics, not an adapter defect. This test used to run
+        // both transactions on the wall clock and so failed on CI whenever they collided.
+        final long insertedAt = utc(2026, 4, 1, 9, 0, 0, 0).getTime();
+        final long terminatedAt = utc(2026, 4, 2, 9, 0, 0, 0).getTime();
+
         portal.setMithraObjectReader(adapter);
         try {
-            MithraManagerProvider.getMithraManager().executeTransactionalCommand(tx -> {
+            DifferentialSupport.inTransaction(insertedAt, tx -> {
                 DiffBalance b = new DiffBalance(utc(2026, 1, 1));
                 b.setBalanceId(7004);
                 b.setQuantity(44.0);
@@ -228,7 +247,7 @@ class BoundWritePathTest {
             });
 
             Throwable failure = catchThrowable(() ->
-                    MithraManagerProvider.getMithraManager().executeTransactionalCommand(tx -> {
+                    DifferentialSupport.inTransaction(terminatedAt, tx -> {
                         DiffBalance found = DiffBalanceFinder.findOne(
                                 DiffBalanceFinder.balanceId().eq(7004)
                                         .and(DiffBalanceFinder.businessDate().eq(utc(2026, 6, 1)))
