@@ -6,11 +6,15 @@ Three standalone Maven projects. Each runs against **H2** and, with the same obj
 Entity models (`ENTITIES.md`) are the specification. The implementation under `project/` was built
 from them and verified by re-running the build independently.
 
-| Demo | JDK | Entities | Temporal shape | Tests |
-|---|---|---|---|---|
-| [`01-crm-bitemporal`](01-crm-bitemporal) | 11 | ~46 | Bitemporal + audit-only + plain | 18 |
-| [`02-petstore-unitemporal`](02-petstore-unitemporal) | 21 | ~22 | Unitemporal (one `AsOfAttribute`) | 17 |
-| [`03-car-classifier`](03-car-classifier) | 11 | 5 | Bitemporal **rules** | 13 |
+| Demo | Build JDK | Source level | Entities | Temporal shape | Tests |
+|---|---|---|---|---|---|
+| [`01-crm-bitemporal`](01-crm-bitemporal) | 17 | 11 | ~46 | Bitemporal + audit-only + plain | 18 |
+| [`02-petstore-unitemporal`](02-petstore-unitemporal) | 21 | 21 | ~22 | Unitemporal (one `AsOfAttribute`) | 17 |
+| [`03-car-classifier`](03-car-classifier) | 17 | 11 | 5 | Bitemporal **rules** | 13 |
+
+Demos 01 and 03 keep `maven.compiler.release=11`, so their *sources* stay on the adapter's Java 11
+floor; they are **built and tested on JDK 17** because every demo test goes through DynamoDB Local,
+which is Java 17 bytecode. See [docs/JAVA11-VERIFICATION.md](../docs/JAVA11-VERIFICATION.md).
 
 ```bash
 cd demos/03-car-classifier/project && mvn clean test

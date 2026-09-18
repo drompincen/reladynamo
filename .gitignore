@@ -26,3 +26,4 @@ dependency-reduced-pom.xml
 *.ps1
 *.py
 .claude/df/
+.claude/worktrees/

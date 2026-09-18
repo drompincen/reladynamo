@@ -53,10 +53,56 @@ class AdversarialOperationGeneratorTest {
 
     @Test
     void should_never_silently_return_wrong_rows_named_seeds() {
-        int[] seeds = {0, 1, 2, 7, 13, 42, 99, 255, 342, 1024, 99991};
+        int[] seeds = {0, 1, 2, 7, 13, 42, 99, 255, 342, 891440, 1024, 99991};
         for (int i = 0; i < seeds.length; i++) {
             assertOracle(seeds[i]);
         }
+    }
+
+    /**
+     * Regression for seed 891440, which failed only in CI because the property draws its seeds at
+     * random. The generated tree is
+     * {@code active = false & processingDate = INFINITY & active = false & ruleId = 3 & active = true}.
+     *
+     * <p>Reladomo's {@code MultiEqualityOperation.zIsNone()} detects the
+     * {@code active = false AND active = true} contradiction and, as a side effect of that analysis,
+     * <em>nulls the redundant duplicate slot</em> in its own {@code atomicOperations} array — the
+     * caller's operation instance is mutated by what looks like a read-only query. A whole family of
+     * Reladomo methods does this ({@code zIsNone}, {@code zEstimateReturnSize},
+     * {@code usesUniqueIndex}, {@code applyOperationToFullCache}, ...).
+     *
+     * <p>Two invariants keep that harmless for the planner, and this test pins both:
+     * the plan is EMPTY, and a null slot is only ever observable on an operation Reladomo has
+     * already ruled None — so {@code planOperation}'s leading {@code isNone} check short-circuits
+     * before anything reads the array. Swept over seeds 0..200000: a null slot appeared 7 times,
+     * every time with {@code isNone() == true}.
+     *
+     * <p>What actually broke was re-analysis: building a <em>second</em> {@code AnalyzedOperation}
+     * over the already-mutated instance makes Reladomo NPE on the null slot. {@link #assertOracle}
+     * therefore analyses once and shares the result with the planner, which is also what production
+     * does — Reladomo hands the adapter exactly one {@code AnalyzedOperation} per query.
+     */
+    @Test
+    void should_plan_contradiction_as_empty_when_reladomo_nulls_a_duplicate_slot() {
+        Operation tree = (Operation) PlanRuleFinder.active().eq(false)
+                .and(PlanRuleFinder.processingDate().eq(INFINITY))
+                .and(PlanRuleFinder.active().eq(false))
+                .and(PlanRuleFinder.ruleId().eq(3))
+                .and(PlanRuleFinder.active().eq(true));
+        assertThat(tree).isInstanceOf(MultiEqualityOperation.class);
+
+        QueryPlan plan = new QueryPlanner().plan(new AnalyzedOperation(tree), planRule(),
+                PlannerConfig.builder().pkFanOutLimit(100).allowTableScan(false).build());
+        assertThat(plan.kind())
+                .as("active = false AND active = true admits no row")
+                .isEqualTo(PlanKind.EMPTY);
+
+        assertThat(ReladomoOperationAccess.isNone(tree))
+                .as("a null slot is only observable on an operation Reladomo has already ruled None")
+                .isTrue();
+        assertThat(ReladomoOperationAccess.multiAtomics((MultiEqualityOperation) tree))
+                .as("Reladomo nulls the redundant duplicate slot in the caller's own operation")
+                .containsNull();
     }
 
     @Test
@@ -70,10 +116,11 @@ class AdversarialOperationGeneratorTest {
                         .or(PlanRuleFinder.ruleId().eq(1)))
                 .and(PlanRuleFinder.ruleName().startsWith("r")
                         .or(PlanRuleFinder.ruleId().notEq(99)));
-        QueryPlan plan = new QueryPlanner().plan(new AnalyzedOperation(tree), planRule());
+        AnalyzedOperation analyzedOperation = new AnalyzedOperation(tree);
+        Operation analyzed = analyzedOperation.getAnalyzedOperation();
+        QueryPlan plan = new QueryPlanner().plan(analyzedOperation, planRule());
         QueryPlanInterpreter interp = new QueryPlanInterpreter();
         PlanRuleData data = rule(1, B0, B2, B0, INFINITY, true);
-        Operation analyzed = new AnalyzedOperation(tree).getAnalyzedOperation();
         boolean expected = reladomoSqlPass(analyzed, data);
         boolean actual = interp.accepts(plan, itemOf(data), data);
         assertThat(expected).as("Reladomo: IN(2,3) AND eq(1) is a contradiction").isFalse();
@@ -101,10 +148,11 @@ class AdversarialOperationGeneratorTest {
         Operation op = (Operation) PlanRuleFinder.ruleId().eq(1)
                 .and(PlanRuleFinder.businessDate().eq(from))
                 .and(PlanRuleFinder.processingDate().eq(INFINITY));
-        QueryPlan plan = new QueryPlanner().plan(new AnalyzedOperation(op), planRule());
+        AnalyzedOperation analyzedOperation = new AnalyzedOperation(op);
+        Operation analyzed = analyzedOperation.getAnalyzedOperation();
+        QueryPlan plan = new QueryPlanner().plan(analyzedOperation, planRule());
         QueryPlanInterpreter interp = new QueryPlanInterpreter();
 
-        Operation analyzed = new AnalyzedOperation(op).getAnalyzedOperation();
         assertThat(interp.accepts(plan, itemOf(onFrom), onFrom)).isTrue();
         assertThat(reladomoSqlPass(analyzed, onFrom)).isTrue();
 
@@ -147,15 +195,22 @@ class AdversarialOperationGeneratorTest {
                 .pkFanOutLimit(100)
                 .allowTableScan(false)
                 .build();
+        // One AnalyzedOperation per tree, shared by the planner and the oracle — as in production,
+        // where Reladomo hands the adapter exactly one per query. Building a second one over the
+        // same instance is what used to fail: the planner's leading isNone() check makes Reladomo
+        // null a redundant slot inside the caller's own MultiEqualityOperation, and re-analysing
+        // that instance then NPEs on the null (seed 891440, see the test above). Sharing one is also
+        // strictly more correct: the oracle now grades the operation the planner actually planned.
+        AnalyzedOperation analyzedOperation = new AnalyzedOperation(tree);
+        Operation analyzed = analyzedOperation.getAnalyzedOperation();
         QueryPlan plan;
         try {
-            plan = new QueryPlanner().plan(new AnalyzedOperation((Operation) tree), design, config);
+            plan = new QueryPlanner().plan(analyzedOperation, design, config);
         } catch (ReladynamoUnplannableOperationException refused) {
             return;
         }
         QueryPlanInterpreter interp = new QueryPlanInterpreter();
         List<PlanRuleData> items = syntheticItems();
-        Operation analyzed = new AnalyzedOperation((Operation) tree).getAnalyzedOperation();
         for (int i = 0; i < items.size(); i++) {
             PlanRuleData data = items.get(i);
             boolean expected = reladomoSqlPass(analyzed, data);

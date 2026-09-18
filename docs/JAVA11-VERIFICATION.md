@@ -12,19 +12,31 @@ skeleton existed.
 expose the build JDK's newer APIs, so `Stream.toList()` compiles happily and then throws
 `NoSuchMethodError` at runtime.
 
-## Execution — verified 2026-09-13
+## Execution — verified in CI on every push
 
-`release=11` does **not** prove the code runs on a Java 11 VM. That was verified separately:
+`release=11` does **not** prove the code runs on a Java 11 VM. The `adapter (JDK 11,
+reladynamo-core)` leg of `.github/workflows/build.yml` proves it, on every push and pull request:
+
+```
+mvn -B clean test -pl reladynamo-core -am     # on Temurin 11, ubuntu-latest
+```
+
+That runs the whole current `reladynamo-core` suite — the XML parser, mapping validator, key
+strategy, temporal encoder, query planner, its adversarial fuzzer, and the data bridge — on a real
+Java 11 VM, and the job fails if any of it does not.
+
+It builds `reladynamo-core` and the parent POM only, and that restriction is not a convenience: see
+[What is NOT covered](#what-is-not-covered-and-why) below.
+
+### First verified 2026-09-13, by hand
 
 ```
 openjdk version "11.0.32.1" 2026-08-18
 OpenJDK Runtime Environment Temurin-11.0.32.1+1
 ```
 
-`reladynamo-core` — **110 tests, 0 failures** on a real Temurin JDK 11: the XML parser, key strategy,
-mapping validator, temporal encoder, query planner and its adversarial fuzzer, and the data bridge.
-
-### Reproducing it
+`reladynamo-core` — **110 tests, 0 failures** on a real Temurin JDK 11 (the suite has grown since;
+CI runs whatever it is now). Reproducing that locally:
 
 The `mvn` on PATH in this environment is **Windows Maven** reached through WSL interop, so a
 WSL-native JDK is invisible to it — pointing surefire at a Linux `java` fails with a mangled
@@ -50,16 +62,48 @@ This machine is **aarch64** — use the `aarch64` binary, not `x64`, or the JDK 
 
 ## What is NOT covered, and why
 
-`reladynamo-ddb` and `reladynamo-test-kit` **cannot** run on Linux ARM here. They depend on DynamoDB
-Local, which is a JNI wrapper over SQLite, and `com.almworks.sqlite4java` publishes natives only for:
+`reladynamo-ddb` and `reladynamo-test-kit` are **not** built or run on JDK 11 anywhere, and cannot
+be as they stand. A JDK 11 *compiler* rejects them outright:
+
+```
+[ERROR] reladynamo-test-kit/src/main/java/io/reladynamo/testkit/LocalDynamoDb.java:[3,52]
+        cannot access com.amazonaws.services.dynamodbv2.local.main.ServerRunner
+[ERROR]   bad class file: .../DynamoDBLocal-2.5.3.jar(...ServerRunner.class)
+[ERROR]     class file has wrong version 61.0, should be 55.0
+```
+
+`LocalDynamoDb` is test-kit **main** code and imports `ServerRunner` and `DynamoDBProxyServer`
+directly, and DynamoDBLocal 2.5.3 is compiled to class-file 61 (Java 17). So the floor for
+test-kit, for `reladynamo-ddb` (whose tests depend on test-kit) and for demos 01 and 03 is **JDK
+17**, which is what CI now uses for them. This was the defect behind four consecutive red CI runs:
+the JDK 11 legs never reached a test, they failed in `javac`.
+
+### The gap, stated plainly
+
+Running `reladynamo-ddb`'s tests on a Java 11 VM is *possible in principle* — DynamoDB Local would
+run out-of-process on a 17+ JVM and the test JVM on 11 would talk to it over HTTP — but not with this
+harness. `LocalDynamoDb.start()` always starts an in-process `DynamoDBProxyServer` and offers no way
+to point a client at an external endpoint, and the class-file 61 imports mean the module cannot be
+compiled by a JDK 11 compiler even if it did. Closing the gap means changing test-kit's main API, not
+configuring CI, so it is deliberately left open.
+
+**Honest status.** Java 11 is verified in two separate, non-overlapping halves:
+
+| Claim | Scope | Proved by |
+|---|---|---|
+| Compiles to Java 11 API + bytecode | **every** module | `maven.compiler.release=11`, plus the `java11-floor` gate in `scripts/check.sh`, which reads the major version byte of every class under `reladynamo-*/target/classes` and fails above 55 |
+| Executes on a real Java 11 VM | `reladynamo-core` only | `adapter (JDK 11, reladynamo-core)` in CI |
+| Executes on a real Java 11 VM | `reladynamo-ddb`, `reladynamo-test-kit` | **not proved** — inferred from bytecode level and API surface only. See the gap above. |
+
+### A second, unrelated limit: Linux ARM
+
+The DynamoDB modules also cannot run on Linux ARM at all. DynamoDB Local is a JNI wrapper over
+SQLite, and `com.almworks.sqlite4java` publishes natives only for:
 
 ```
 linux-amd64  linux-i386  osx  win32-x64  win32-x86
 ```
 
-There is no `linux-aarch64` native, so DynamoDB Local cannot start. This is an environment limit, not
-an adapter one: those modules compile to class-file 55 like the rest and use no API above Java 11.
-
-**Honest status:** Java 11 execution is proven for the core module and inferred — from bytecode level
-and API surface — for the DynamoDB modules. Closing that gap needs either an x86-64 Linux runner or a
-DynamoDB Local alternative with an ARM native, and belongs in CI rather than here.
+There is no `linux-aarch64` native, so DynamoDB Local cannot start on an ARM dev box. That is an
+environment limit, not an adapter one, and it is why the DynamoDB suites belong in CI:
+`ubuntu-latest` is x86-64.
