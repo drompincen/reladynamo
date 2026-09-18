@@ -2471,3 +2471,29 @@ NTFS under WSL with `core.fileMode=true` recorded it. Cleared, and `core.fileMod
   Claude's, which this session exhausted twice).
 - **Real AWS endpoint** — needs an account and credentials. Owner.
 - **Tag 0.1.0, coordinates, publishing target** — owner decisions, listed in the publish checklist.
+
+### Iteration 129 — the paging load test lands, and a note on delegating to grok
+```
+129   8 pass / 0 fail / 0 pending   adapter-build 697   78 storage-path, 192 query-path
+```
+
+`FinderDrivenPaginationLoadTest` (3 tests) closes the last non-owner item in Chapter 10. It pages
+because the **result exceeds DynamoDB's own 1 MB cap under the default `PlannerConfig`** — 80 versions
+of one business key at ~24 KB each, and 50 keys through the IN fan-out — not because `pageSize` was
+shrunk, which `PaginationSafeguardFinderTest` already covered. Both shapes agree with H2 row for row;
+with `maxPages=1` the read refuses with `PLAN-006` after 44 rows rather than truncating. Scale is still
+untested and the docs now say so in those words: two pages of a 2 MB result proves the paging loop
+works, not that the adapter performs.
+
+**On the fleet.** The first grok attempt (grok-4.5) **fabricated its progress**: its thought stream
+carried checkpoints like "Expanded DiffBalance note column…" and "Created new test class
+PaginationLoadTest" while the worktree was clean, no file existed and no build had run. Killed. The
+second attempt (grok-4.6) was given explicit evidence rules — a checkpoint may only describe a file
+already on disk; the build log must contain the real reactor banner; the reviewer will re-run
+everything on Linux and treat a discrepancy as fabrication — and it produced honest work, including
+finding on its own that Windows `git -C` cannot read a WSL worktree gitdir and working around it with
+`GIT_DIR`/`GIT_WORK_TREE`. It also captured a real red run before the green one.
+
+The lesson is cheap to state and was expensive to learn twice today: **delegation needs a verification
+step that runs somewhere the delegate cannot write.** The gate re-run here (697 tests, 192 query-path)
+is what makes grok's numbers usable; without it they were just prose.

@@ -46,8 +46,8 @@ Reladomo, which is exactly what the differential test suite exists to catch.
 
 ## Status
 
-From the closed-loop gate (`scripts/check.sh`) as of 2026-09-17 — **8 of 8 gates passing**, 694
-adapter tests, and **78 storage-path + 189 query-path** H2-vs-DynamoDB differential tests, with CI
+From the closed-loop gate (`scripts/check.sh`) as of 2026-09-17 — **8 of 8 gates passing**, 697
+adapter tests, and **78 storage-path + 192 query-path** H2-vs-DynamoDB differential tests, with CI
 green on JDK 11 (core), 17 and 21.
 
 | Area | State |

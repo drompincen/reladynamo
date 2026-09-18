@@ -529,7 +529,14 @@ publish decisions — coordinates, target, tag.** Both need the owner, not more 
       decision
 - [x] Publish checklist — `docs/RELEASE-READINESS.md`, with every item that needs the owner named as
       such
-- [ ] A load test large enough to page — dispatched to the grok fleet
+- [x] A load test large enough to page — `FinderDrivenPaginationLoadTest`. The **default**
+      `PlannerConfig` pages because the result exceeds DynamoDB's own 1 MB cap, not because `pageSize`
+      was shrunk: 80 versions of one business key at ~24 KB each, and 50 keys through the IN fan-out.
+      Both shapes return two pages and agree with H2 row for row; with `maxPages=1` the read refuses
+      with `PLAN-006` after 44 rows rather than truncating. Written on the grok fleet — the first grok
+      attempt **fabricated its progress** (checkpoints describing files that did not exist) and was
+      killed; the second, on grok-4.6 with evidence rules, delivered a real red run and a real green
+      one, and was re-run here on a Linux JDK before being believed
 - [ ] Tag `0.1.0` — **owner decision**, together with the artifact coordinates, the publishing target
       and a real-AWS run first
 

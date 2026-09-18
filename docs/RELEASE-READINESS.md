@@ -163,8 +163,13 @@ in the tree.
 
 - **No live AWS.** Every test uses DynamoDB Local. Throttling, adaptive capacity, GSI propagation
   delay, IAM and real network failures are untested. This is the largest gap.
-- **No load.** No test is sized to exercise volume. Pagination has been exercised only with
-  deliberately tiny `pageSize`/`maxPages` values on small fixtures.
+- **Volume: paging is now exercised, scale is not.** `FinderDrivenPaginationLoadTest` makes DynamoDB's
+  own 1 MB response cap the reason a query pages, under the **default** `PlannerConfig` rather than a
+  shrunken `pageSize`: 80 versions of one business key at ~24 KB each, and 50 partition keys through the
+  IN fan-out. Both return two pages, both agree with H2 row for row, and with `maxPages=1` the read
+  refuses with `RELADYNAMO-PLAN-006` after 44 rows instead of truncating. What is still untested is
+  *scale*: hot-partition throttling, tables of millions of items, and anything concurrent. Two pages of
+  a 2 MB result is proof that the paging loop works, not that the adapter performs.
 - **Java 11 execution of the DynamoDB modules.**
   - `reladynamo-core` ran 110 tests on Temurin 11 on 2026-09-13 (`docs/JAVA11-VERIFICATION.md`).
     The core module has grown to 202 tests since, and that run has not been repeated.
@@ -331,8 +336,9 @@ because it looks like one. It becomes meaningful for the first release after 0.1
 
 **Remaining work before tagging**
 
-- [ ] Load test large enough to page, against DynamoDB Local. **In progress elsewhere** — dispatched to
-      the grok fleet; no result yet.
+- [x] Load test large enough to page, against DynamoDB Local — `FinderDrivenPaginationLoadTest`, 3 tests.
+      Written on the grok fleet, and the red run that proves the multi-page assertion can fail is kept in
+      its log; re-run independently here on a Linux JDK before being believed.
 - [x] **CI is green.** The `build` workflow passed in full on commit `1b6c1e8` — the first green run in
       this repository's history. The JDK 11 leg runs `reladynamo-core` only; why, and what that does and
       does not prove, is documented in `docs/JAVA11-VERIFICATION.md`. The Java 11 *claim* for the
