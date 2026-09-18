@@ -2407,3 +2407,67 @@ now says **176**.
 Both halves of that story are worth keeping. The query path genuinely *was* thin when the inspection
 landed, and closing it was the right priority. But for some hours it had already been closed while the
 gate still said otherwise, and I kept repeating the number instead of re-deriving it.
+
+## 2026-09-17 — the board was green over a CI that had never passed
+
+### Iterations 127 (baseline) and 128
+```
+127 baseline  8 pass / 0 fail / 0 pending   adapter-build 681   78 storage-path, 176 query-path
+128           8 pass / 0 fail / 0 pending   adapter-build 694   78 storage-path, 189 query-path
+```
+
+### The finding that matters most today is not in the gate
+
+**GitHub Actions had failed on every run since the repository was created — 4 of 4 — while the local
+board read 8 of 8.** Nobody had looked. Two unrelated defects:
+
+- The **JDK 11 legs never reached a test.** `reladynamo-test-kit`'s *main* class `LocalDynamoDb`
+  imports `ServerRunner` and `DynamoDBProxyServer`, and DynamoDBLocal 2.5.3 ships those as class-file
+  61, so `javac` on 11 rejects the jar outright. test-kit, `reladynamo-ddb` and demos 01/03 could not
+  be *built* on 11, let alone run. The matrix now runs core on 11 and everything on 17/21, and the
+  Java 11 claim is stated with its scope: core is proven on a real 11 VM, ddb is inferred from
+  bytecode level. **That gap was always there; the CI leg made it look closed.**
+- The **JDK 17 leg failed in the adversarial fuzzer, seed-dependently** (seed 891440), which is why it
+  passed locally. Reladomo's `MultiEqualityOperation.zIsNone()` **mutates the operation it is asked
+  about**, nulling a redundant duplicate slot in the caller's own `atomicOperations`; a family of its
+  methods does this. The generator was innocent. `assertOracle` built a *second* `AnalyzedOperation`
+  over the mutated instance and Reladomo NPE'd re-analysing the null. Fixed by analysing once and
+  sharing it with the planner — which is what production does, so the oracle now grades the operation
+  the planner planned. Stronger, not weaker. Null-slot invariant swept over 200 000 trees: it only
+  ever appears on an operation already ruled None, which `planOperation` short-circuits.
+
+The lesson is the one this project keeps relearning: **a gate proves what it runs.** The eight-gate
+board never ran GitHub Actions, so "8 of 8" said nothing about it, and I quoted the board for two days
+without checking the badge it sits next to.
+
+### Relationships and deep fetch, and a real defect
+
+13 full-result-set differential comparisons (as-of navigation at past business *and* processing dates,
+many-to-one, lazy navigation, empty relationship, 12 children in 12 partitions, a two-level chain,
+refusals by name). Found test-first: `parent.getChildren()` on a single object arrives as
+`RelationshipMultiEqualityOperation`, which implements `EqualityOperation` but **not**
+`MultiEqualityOperation`, so `QueryPlanner.Node.decompose` kept it as one opaque atom, saw no foreign
+key binding, and refused with `PLAN-001` a lazy navigation the FK GSI can serve — while the batched
+`IN (...)` deepFetch form worked. Expanded via the public `getOrCreateMultiEqualityOperation()`,
+javap-verified, not a reflective field read.
+
+### Chapter 8 closed, and the verification pass is why
+
+Three new explainers were written, then **verified against source in a second pass before being
+believed**. That pass found: a `TransactWriteItems` action count that was one too high, "ten
+maximum-size items fill 4 MB" (it is 3.9 MB, so eleven cannot fit), citations that did not say what
+was claimed, a figure whose tokens had silently vanished in a CSS change, and a defect in the README's
+own `Balance` example — it omitted `futureExpiringRowsExist`, which changes which rows Reladomo
+produces. Two captions were downgraded from "asserted" to "traced through the director source",
+because no test pins those boundaries coordinate-by-coordinate. `RELEASE-READINESS.md` and
+`COVERAGE-GAPS.md` were stale enough to mislead (254 tests, 48 differential, "11 of 32 SPI", 7 gates)
+and are re-derived; readiness now carries an API stability review and a publish checklist.
+
+Also: 588 tracked files still carried the executable bit after the "no executable scripts" commit —
+NTFS under WSL with `core.fileMode=true` recorded it. Cleared, and `core.fileMode` set false locally.
+
+### Still open
+- **Load test large enough to page** — dispatched to the grok fleet (its limits are separate from
+  Claude's, which this session exhausted twice).
+- **Real AWS endpoint** — needs an account and credentials. Owner.
+- **Tag 0.1.0, coordinates, publishing target** — owner decisions, listed in the publish checklist.

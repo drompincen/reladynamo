@@ -499,15 +499,39 @@ verification (`docs/JAVA11-VERIFICATION.md`), migration tooling + guide. perform
 `docs/RELEASE-READINESS.md` written: an honest accounting of what is proven versus what is not.
 `japicmp` is deliberately deferred — it needs a published baseline that will not exist until 0.1.0,
 and a plugin that always passes is worse than no check because it looks like one.
-**Remaining before 0.1.0: contact with a real AWS endpoint, relationships/deep-fetch differentially,
-finder-driven query-path comparison, a load test.** All operational, none architectural.
+**2026-09-17.** Two of the four remaining items closed. **Relationships and deep fetch are now compared
+differentially** — 13 full-result-set comparisons including as-of navigation at past business and
+processing dates, and the pass found a real defect: `parent.getChildren()` on a single object arrives as
+`RelationshipMultiEqualityOperation`, which the planner never decomposed, so a lazy navigation the
+foreign-key GSI can serve was refused with `PLAN-001` while the batched deep-fetch form worked.
+**Finder-driven query-path comparison** was already closed by the finder matrix (176 → 189 query-path
+tests). A **load test large enough to page** is dispatched to the grok fleet.
+
+**The Java 11 claim was overstated and is now corrected.** The CI matrix existed but had never passed:
+`reladynamo-test-kit`'s main code imports DynamoDB Local types that are Java 17 bytecode, so no module
+downstream of it can be compiled by a JDK 11 compiler at all. Runtime on a real JDK 11 is proven for
+`reladynamo-core`; for `reladynamo-ddb` it is inferred from bytecode level, and that gap is now written
+down rather than implied.
+
+**Remaining before 0.1.0: contact with a real AWS endpoint (needs an account and credentials), and the
+publish decisions — coordinates, target, tag.** Both need the owner, not more work.
 **Depends on:** 9
 
 - [x] Performance: JMH on the codec and query planner; N+1 / deep-fetch behaviour measured
 - [x] `/reviewer` + `/security-review` passes; grok adversarial review of the whole adapter
-- [x] Verify Java 11 runtime on a real JDK 11 toolchain, not just `release=11`
-- [ ] API stability review, `japicmp` baseline, semantic versioning
-- [ ] Publish checklist; tag `0.1.0`
+- [x] Verify Java 11 runtime on a real JDK 11 toolchain, not just `release=11` — **for
+      `reladynamo-core`**; the DynamoDB modules cannot be compiled by JDK 11, which is now stated in
+      `docs/JAVA11-VERIFICATION.md` instead of being papered over by a CI leg that never passed
+- [x] Relationships and deep fetch compared differentially
+- [x] API stability review — `docs/RELEASE-READINESS.md`, which enumerates the surface a consumer
+      touches, what is internal, and what 0.x versioning promises. `japicmp` stays deliberately
+      deferred until a published 0.1.0 baseline exists; adopting the versioning convention is an owner
+      decision
+- [x] Publish checklist — `docs/RELEASE-READINESS.md`, with every item that needs the owner named as
+      such
+- [ ] A load test large enough to page — dispatched to the grok fleet
+- [ ] Tag `0.1.0` — **owner decision**, together with the artifact coordinates, the publishing target
+      and a real-AWS run first
 
 ## Chapter 11: Close the 2026-09-14 inspection
 **Status:** in-progress, dispatched 2026-09-14. **Depends on:** 5, 7, 10.
@@ -564,7 +588,14 @@ floor, verify every Reladomo API with `javap` first.
       immediately found a second dead knob, `avgItemBytes`, read by nothing anywhere (finding 20).
       **Both left failing**: a red gate naming a real defect beats a green one that was never
       load-bearing.
-- [ ] The thirteen acceptance cases at the end of the inspection, each with an executable test
+- [~] The thirteen acceptance cases at the end of the inspection, each with an executable test — **10
+      of 13 pass with a test that was seen to fail first**. The other three are declared scope, not
+      effort: case 2 (stale-replay safety) has no online replay to make safe, because 0.1.0 declares
+      offline immutable-source migration; case 11 (ASE extraction) has no ASE in this environment, and
+      manufacturing evidence for it is exactly what the inspection was written to prevent; case 13 is
+      half done — crash/restart and partial writes are covered, cutover, rollback and reverse import
+      are M-05/M-06. Quoting "10 of 13" without that breakdown would overstate it in the way the
+      inspection exists to prevent.
 
 ---
 
