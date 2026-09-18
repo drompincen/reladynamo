@@ -7,7 +7,7 @@ green in the build.
 
 ## Index
 
-Thirty-three findings. The first fifteen come from diffing an adapter against Reladomo-over-H2: **three are
+Thirty-four findings. The first fifteen come from diffing an adapter against Reladomo-over-H2: **three are
 real adapter defects (12, 14, 15); the other twelve were wrong premises about Reladomo**, corrected
 with evidence from generated code or `javap`. Findings 16-19 came from diffing the *specification*
 against the code, which no test could have caught because every fixture is single-source. Finding 20
@@ -1001,3 +1001,53 @@ complete. `PaginationSafeguardFinderTest` is 8/8, with the RED captured first.
 The class is worth naming: a setting is not wired because it compiles and is not enforced because a
 test set it directly on the plan. Only driving it from public configuration through every execution
 path finds them.
+
+## 34. Reladomo deletes rather than inactivates inside a 10 ms bucket — NOT the adapter
+
+Found by CI, not by the local board, which is the interesting part: `BoundWritePathTest`'s terminate
+case failed on a GitHub runner while the same command passed on this machine, and passed in the
+`adapter (JDK 17)` and `adapter (JDK 21)` jobs of the *same* run. So it was neither a JDK difference
+nor a breakage — it was timing.
+
+From Reladomo 18.1.0 sources, `GenericBiTemporalDirector.createProcessingTimestamp`:
+
+```java
+new Timestamp(tx.getProcessingStartTime() / 10 * 10)   // clamp for sybase
+```
+
+Every transaction's processing stamp is rounded **down to a 10 ms bucket**. `inactivateObject` then
+reads, in effect:
+
+```java
+if (processingFrom(oldData) == txStartTime) {
+    warn("has changed too fast. Deleting, instead of inactivating");
+    delete(...);
+}
+```
+
+So an insert and a terminate whose transactions start inside the same 10 ms bucket cause Reladomo to
+**physically delete** the superseded version instead of closing its processing rectangle. What remains
+is a single row with `businessTo` cut and `processingTo` still infinity — and the test's assertion that
+"at least one version must carry a finite `processingDateTo`" is then false through no fault of the
+adapter.
+
+**Verified as Reladomo's semantics, not a divergence:** with both transactions pinned to one instant,
+H2 and DynamoDB produce byte-identical shapes —
+`qty=44.0 biz=[2025-12-31 17:00, 2026-05-31 18:00) proc=[2026-04-01 03:00, 9999-12-01 23:59)`. The
+decision is taken in the director, above the persister, so both stores see the same instruction.
+
+Why it never fired locally: on WSL2 over `/mnt/c`, DynamoDB Local's commit is slow enough that the two
+transaction starts sat 20–80 ms apart in 25 consecutive runs, idle and under 8-way load. A Linux runner
+closes that gap. It was reproduced deterministically by pinning both transactions to the same instant,
+which reproduces the exact CI text at the exact line.
+
+**Fix: the test, not the adapter.** Both transactions now pin distinct processing instants through
+`DifferentialSupport.inTransaction(long, …)`, the hook the sibling bound-update test already used. **The
+assertion itself is unchanged** — only its precondition is now guaranteed. The other four tests that
+call `terminate()` were surveyed: three already pin the clock throughout, and `BitemporalDifferentialTest`
+compares H2 against DynamoDB within one transaction, so a collision hits both sides equally. None makes
+the absolute claim.
+
+The general lesson for this suite: **any assertion about a processing-time boundary needs a pinned
+clock.** Wall-clock timing makes it a coin flip on fast hardware, and the flip only ever lands wrong
+somewhere you are not watching.

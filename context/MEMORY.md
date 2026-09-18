@@ -2497,3 +2497,30 @@ finding on its own that Windows `git -C` cannot read a WSL worktree gitdir and w
 The lesson is cheap to state and was expensive to learn twice today: **delegation needs a verification
 step that runs somewhere the delegate cannot write.** The gate re-run here (697 tests, 192 query-path)
 is what makes grok's numbers usable; without it they were just prose.
+
+### Finding 34, and the reason CI mattered more than the board today
+
+`BoundWritePathTest`'s terminate case failed on a GitHub runner while passing here, and passing in the
+`adapter (JDK 17)` and `adapter (JDK 21)` jobs of the *same* run. Root cause, read out of Reladomo
+18.1.0's sources rather than guessed: `GenericBiTemporalDirector.createProcessingTimestamp` is
+`new Timestamp(tx.getProcessingStartTime() / 10 * 10)  // clamp for sybase`, so every transaction start
+is rounded down to a **10 ms bucket**, and `inactivateObject` **physically deletes** the superseded
+version instead of closing its processing rectangle when the new transaction lands in the same bucket.
+The test asserted that some version carries a finite `processingDateTo`, which that path does not
+guarantee.
+
+Confirmed as Reladomo's semantics, not a divergence: pinned to one instant, H2 and DynamoDB produce
+byte-identical shapes. The fix pins two distinct processing instants; **the assertion is unchanged**.
+Verified 30/30 under CPU load, whole module green.
+
+Why it never fired locally: on WSL2 over `/mnt/c`, DynamoDB Local's commit is slow enough that the two
+transaction starts sat 20–80 ms apart in 25 consecutive runs. The slow filesystem was hiding a
+wall-clock race. A Linux runner closes the gap — so **CI was a better oracle than this machine**, which
+is the second time today that the thing outside the local board found what the board could not.
+
+Also fixed: the gate itself wrote `iteration 0` for every CI run, because `--iteration ci` went into a
+`%d`. printf said "invalid number" on stderr and the board quietly misreported which run it described.
+
+The standing rule this suite now carries: **any assertion about a processing-time boundary needs a
+pinned clock.** On the wall clock it is a coin flip on fast hardware, and it only lands wrong where you
+are not watching.
