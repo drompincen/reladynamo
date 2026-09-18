@@ -6,8 +6,8 @@ production data.
 **Where the numbers come from.** Every figure below was worked out again on 2026-09-17 from the
 source and the reports, not copied from other documents. The build was not re-run for this document.
 
-- Gate figures: `reports/check-126.json`, iteration 126, 2026-09-16 08:17 MT. This is the last
-  complete gate run.
+- Gate figures: `reports/check-latest.json`, iteration **128**, 2026-09-17 20:15 MT. This is the last
+  complete gate run, and it supersedes the iteration-126 figures this document previously quoted.
 - SPI classification: read from `reladynamo-ddb/src/main/java/io/reladynamo/ddb/persist/DynamoDbPersister.java`
   and checked against the interface declarations in `reladomo-18.1.0-sources.jar`.
 - Acceptance cases and findings: `docs/INSPECTION-TRACKING.md` and `docs/CONFORMANCE-FINDINGS.md`.
@@ -17,11 +17,11 @@ source and the reports, not copied from other documents. The build was not re-ru
 
 | | Value | Source |
 |---|---|---|
-| Closed-loop gate | **8 of 8 pass**, 0 fail, 0 pending | `check-126.json` |
-| Adapter tests: gate figure | **681**. This is a **floor**, not the total. | `adapter-build` gate. It adds up the surefire XML `tests` attributes, which undercount jqwik property classes. The caveat is recorded in `scripts/check.sh.txt`. |
-| Adapter tests: reactor total | **689**: core 202, test-kit 15, ddb 469, spike 3 | Maven reactor summary recorded 2026-09-15 15:40 MT in `docs/INSPECTION-TRACKING.md` and quoted in `README.md`. Not re-run for this document. |
-| Differential tests (`io.reladynamo.ddb.differential.*Test`) | **254**: 78 storage-path, 176 query-path | `check-126.json`. The split goes by class name, and neither half is exact. See `docs/COVERAGE-GAPS.md` §3. |
-| Demo tests | **48**: CRM 18, pet store 17, classifier 13 | `check-126.json`, using the same surefire-XML counting |
+| Closed-loop gate | **8 of 8 pass**, 0 fail, 0 pending | `check-latest.json`, iteration 128 |
+| Adapter tests: gate figure | **694**. This is a **floor**, not the total. | `adapter-build` gate. It adds up the surefire XML `tests` attributes, which undercount jqwik property classes. The caveat is recorded in `scripts/check.sh.txt`. |
+| Adapter tests: reactor total | **689**: core 202, test-kit 15, ddb 469, spike 3. **Stale** — the reactor has not been re-run since, and the gate floor has passed it. | Maven reactor summary recorded 2026-09-15 15:40 MT in `docs/INSPECTION-TRACKING.md` and quoted in `README.md`. Not re-run for this document. |
+| Differential tests (`io.reladynamo.ddb.differential.*Test`) | **267**: 78 storage-path, 189 query-path | `check-latest.json`. The split goes by class name, and neither half is exact. See `docs/COVERAGE-GAPS.md` §3. |
+| Demo tests | **48**: CRM 18, pet store 17, classifier 13 | `check-latest.json`, using the same surefire-XML counting |
 | Persister SPI | **32 methods: 14 implemented, 17 refuse by name, 1 conditional** | [§ Persister SPI](#persister-spi) |
 | Inspection acceptance cases | **10 of 13 pass**. The other 3 are blocked by declared scope. | [§ Acceptance cases](#acceptance-cases) |
 | Conformance findings | **33 recorded**. None is an open adapter defect. | [§ Conformance findings](#conformance-findings) |
@@ -147,9 +147,14 @@ in the tree.
   - Scan is opt-in.
   - `maxPages` and the in-memory row ceiling raise `RELADYNAMO-PLAN-006` and `PLAN-007` rather than
     returning a partial result (`PaginationSafeguardFinderTest`).
-- **Deep fetch without N+1.** `RelationshipDifferentialTest` fetches 3 children for each of 8 parents
-  through a foreign-key GSI with an `ALL` projection. It asserts fewer reads than parents; a comment in
-  the test records one query measured.
+- **Deep fetch without N+1, and compared differentially.** `RelationshipDifferentialTest` fetches 3
+  children for each of 8 parents through a foreign-key GSI with an `ALL` projection.
+  `RelationshipDifferentialGraphTest` adds 13 full-result-set comparisons against H2: as-of navigation
+  at a past business date and at a past processing date, many-to-one, an empty relationship, 12 children
+  across 12 base-table partitions, a two-level chain asserted at `scan=0`, `getItem=0` and at most 2
+  reads with a grandchild-count guard, and a refusal by name when the relationship has no GSI. A lazy
+  `parent.getChildren()` navigation on a single object, previously refused with `PLAN-001`, now plans
+  through the same GSI.
 - **The MIT claim.** An enforcer rule stops DynamoDB Local, sqlite4java and H2 from reaching compile
   or runtime scope.
 - **Java 11 bytecode.** Every adapter class is class-file major 55 or lower (gate).
@@ -166,8 +171,10 @@ in the tree.
   - `DynamoDBLocal-2.5.3.jar` is class-file major 61 (Java 17); `DynamoDBEmbedded` and `ServerRunner`
     were sampled. The `reladynamo-ddb` and test-kit tests start it inside the test JVM, so they cannot
     run on a Java 11 VM as the build is set up.
-  - `.github/workflows/build.yml` runs `mvn -B clean test` on JDK 11 across the whole reactor. No CI
-    result is recorded in this repository.
+  - `.github/workflows/build.yml` now runs its JDK 11 leg against **`reladynamo-core` only**, for that
+    reason; the reasoning is written down in `docs/JAVA11-VERIFICATION.md`. The workflow passed in full
+    on commit `1b6c1e8` — the first green run in this repository's history. A green run proves the JDK
+    11 leg that exists, which is core; it does not execute the DynamoDB modules on a Java 11 VM.
   - "Java 11+" for the DynamoDB modules therefore rests on bytecode level and API surface only.
 - **Concurrency.** No test in `reladynamo-ddb` or the demos starts a second thread or process. The
   conflict contract is tested with two clients in one JVM.
@@ -184,8 +191,10 @@ in the tree.
 - **Reviews predate later code.**
   - `docs/SECURITY-REVIEW.md` is dated 2026-09-13, before the transaction coordinator and the
     PartiQL limit fix landed (2026-09-15).
-  - `docs/ASSUMPTION-CHALLENGE.md` raises C-01 to C-20. C-09 and C-11 became findings 22 and 23, which
-    are fixed. No triage outcome is recorded for the other eighteen.
+  - `docs/ASSUMPTION-CHALLENGE.md` raises C-01 to C-20, and its prose still dates from 2026-09-14. All
+    twenty now carry a triage outcome: C-09 and C-11 as findings 22 and 23, and the other eighteen in
+    that file's "Triage outcomes — 2026-09-17" section — 11 still held, 4 partly superseded, 1 partly
+    disproven, 1 superseded, 1 not determined.
 - **Out of scope for 0.1.0**: online migration, reverse migration, a relational source extractor, and
   Sybase ASE.
 
@@ -246,11 +255,15 @@ read-capable test and demo wires the adapter (`ClassifierBoundPortalTest`, `Pets
 
 1. **Nothing in the code marks the boundary.** There is no `module-info.java`, no `package-info.java`
    and no `internal` package. All 41 core classes and 29 of the 37 ddb classes are `public`, so a
-   consumer cannot tell from the jar what is supported.
-2. **The README "Usage" snippet builds a write-only persister.** The 3-argument `DynamoDbPersister`
-   constructor leaves out the planner, executor, design and config, so `find` and `count` throw
-   `UnsupportedOperationException`. Every read-capable wiring in the repository uses the 7-argument
-   constructor, and `src/main` has no bootstrap or factory type that assembles it.
+   consumer cannot tell from the jar what is supported. **Documented, not fixed**: `README.md` § Install
+   → "What is public API" now states the boundary in prose, naming the supported packages and types, the
+   catchable exceptions, and the fact that everything else may change within 0.x. The jar still does not
+   carry it.
+2. **The README "Usage" snippet builds a write-only persister.** ~~Fixed 2026-09-17~~: "Usage" now shows
+   the read-capable 7-argument wiring. The underlying point stands — the 3-argument constructor is still
+   public and still yields a persister whose `find` and `count` throw `UnsupportedOperationException`,
+   and `src/main` still has no bootstrap or factory type that assembles the 7-argument form, so the
+   correct wiring is documentation rather than API.
 3. **`KeyStrategy` is a public interface, but the read path never calls it.** `QueryPlanner` derives
    partition keys through `PartitionKeyEncoder`, and the executor uses
    `DefaultKeyStrategy.NON_DATED_SORT_KEY`. A custom `KeyStrategy` writes keys that reads cannot find.
@@ -280,7 +293,7 @@ because it looks like one. It becomes meaningful for the first release after 0.1
 
 **Already true**
 
-- [x] Gate green, 8 of 8: `reports/check-126.json`
+- [x] Gate green, 8 of 8: `reports/check-latest.json`, iteration 128
 - [x] Licence: MIT `LICENSE`, `<licenses>` in `pom.xml`, `THIRD-PARTY-NOTICES.md`, and the
       `licence-scope` enforcer rule with its gate passing
 - [x] Java 11 bytecode floor: `maven.compiler.release=11` in `pom.xml`, and the `java11-floor` gate
@@ -289,15 +302,18 @@ because it looks like one. It becomes meaningful for the first release after 0.1
       `AcceptanceRequiredSpiTest`
 - [x] Acceptance cases: 10 of 13 pass, and the remaining 3 are declared scope ([table](#acceptance-cases))
 - [x] Query path compared with H2 through generated finders: `FinderMatrix*CasesTest`,
-      `FinderDrivenDifferentialTest`, and 176 query-path tests in `check-126.json`
-- [x] Relationships and deep fetch compared with H2: `RelationshipDifferentialTest`
+      `FinderDrivenDifferentialTest`, and 189 query-path tests in `check-latest.json`
+- [x] Relationships and deep fetch compared with H2: `RelationshipDifferentialTest`, and
+      `RelationshipDifferentialGraphTest` — 13 full-result-set comparisons
 - [x] No open adapter defect among findings 1–33: `docs/CONFORMANCE-FINDINGS.md`, with source checks
       listed [above](#conformance-findings)
 - [x] Security review exists: `docs/SECURITY-REVIEW.md` (see the re-run item below)
 - [x] Per-row hot path measured: `docs/PERFORMANCE.md` (indicative only; the error bars are larger than
       the scores)
-- [x] CI workflow defined for JDK 11/17/21, the gate and the demos: `.github/workflows/build.yml`. This
-      is the definition only; see the CI item below.
+- [x] CI workflow defined **and green** for JDK 11/17/21, the gate and the demos:
+      `.github/workflows/build.yml`. The `build` workflow passed in full on commit `1b6c1e8`, the first
+      green run in this repository's history. The JDK 11 leg runs `reladynamo-core` only; see
+      `docs/JAVA11-VERIFICATION.md` and [§ Not proven](#what-is-not-proven--read-this-before-adopting).
 
 **Needs the repository owner's decision or credentials**
 
@@ -315,19 +331,48 @@ because it looks like one. It becomes meaningful for the first release after 0.1
 
 **Remaining work before tagging**
 
-- [ ] Load test large enough to page, against DynamoDB Local
-- [ ] Resolve the Java 11 claim for the DynamoDB modules against the DynamoDB Local 2.5.3 finding above,
-      then get a green CI run on the commit to be tagged. No CI result is recorded in this repository.
-- [ ] Make `README.md` "Usage" show the read-capable 7-argument wiring
-- [ ] Bring `docs/SUPPORT-CONTRACT.md` up to date with the source:
-  - Tier 1 still says the 400 KB check runs before keys are appended (R-13).
-  - Tier 2 still lists R-01, R-02 and M-04 as open and says "20 of 32 persister SPI methods refuse".
-  - Tier 4 still describes R-10's unstamped GSI keys.
-  - "What verified means" quotes "56 storage-path, 6 query-path".
-  - `docs/INSPECTION-TRACKING.md` says Tier 2 was rewritten to quote the case-10 split. The file does
-    not contain it.
-- [ ] Mark the internal API boundary (review finding 1), or at least document it in `README.md`
-- [ ] Record a triage outcome for `docs/ASSUMPTION-CHALLENGE.md` C-01 to C-20, other than C-09 and C-11
+- [ ] Load test large enough to page, against DynamoDB Local. **In progress elsewhere** — dispatched to
+      the grok fleet; no result yet.
+- [x] **CI is green.** The `build` workflow passed in full on commit `1b6c1e8` — the first green run in
+      this repository's history. The JDK 11 leg runs `reladynamo-core` only; why, and what that does and
+      does not prove, is documented in `docs/JAVA11-VERIFICATION.md`. The Java 11 *claim* for the
+      DynamoDB modules is therefore resolved by **narrowing it**, not by executing those modules on a
+      Java 11 VM — see [§ Not proven](#what-is-not-proven--read-this-before-adopting). A green run on
+      the commit actually tagged is still required at tag time.
+- [x] `README.md` "Usage" shows the read-capable 7-argument wiring
+- [x] `docs/SUPPORT-CONTRACT.md` brought up to date with the source (2026-09-17). Each item was verified
+      against the code before the text was changed:
+  - Tier 1's 400 KB row now says what the code does: `DynamoDbWriter.toItem` appends `pk`/`sk`, calls
+    `stampGsiKeys`, and *then* calls `ItemCodec.rejectIfTooLarge`, so the fully assembled item is
+    measured. Reserved-name validation (`MappingValidator.validateItemNamespace`,
+    `RELADYNAMO-CFG-013`) and `KeyComponentEncoder`'s pinned key types are named. R-13 closed.
+  - Tier 2 drops R-01, R-02 and M-04 — each verified closed in source and tests — and now quotes the
+    SPI split counted from `DynamoDbPersister.java`: **14 implemented, 17 refuse by name, 1
+    conditional**, with all three lists spelled out, and with the case-10 derivation (classifier and
+    pet-store bound portals, H2 disconnected) stated. Neither "20 of 32" nor the old gap list survives.
+  - Tier 4 rewritten for R-10 closed: sparse-current stamping and unstamping, composite GSI keys, and
+    `RELADYNAMO-CFG-014` refusing `KEYS_ONLY`/`INCLUDE` at validation and at `TableCreator`.
+  - "What verified means" now quotes `reports/check-latest.json`: **78 storage-path, 189 query-path**,
+    iteration 128, 8 of 8, 694 adapter tests.
+  - `docs/INSPECTION-TRACKING.md`'s claim that Tier 2 quotes the case-10 split was made **true** in
+    `SUPPORT-CONTRACT.md` rather than deleted from the tracking file, because the split is the current
+    verified reality and belongs in the contract either way.
+  - Also corrected while there, because the source had moved past it: Tier 3's custom-temporal-name
+    paragraph (unitemporal custom axes now work end to end; bitemporal ones refuse with
+    `RELADYNAMO-CFG-015`), and the eligibility paragraph's "no cross-JVM conflict detection **yet**".
+  - Added: relationships and deep fetch are compared differentially — 13 full-result-set tests in
+    `RelationshipDifferentialGraphTest`, including as-of navigation at a past business date and at a
+    past processing date — and a lazy `parent.getChildren()` navigation that used to be refused with
+    `PLAN-001` is now planned through the foreign-key GSI.
+- [x] Internal API boundary documented (review finding 1): `README.md` § Install → "What is public API"
+      names the packages and types a consumer may touch, the exceptions it may catch, and states that
+      everything else is internal and may change within 0.x. Every package and type name in it was
+      checked to exist. The boundary is still **prose only** — no `module-info.java`, no `internal`
+      package — so finding 1 is documented, not fixed in code.
+- [x] Triage outcome recorded for `docs/ASSUMPTION-CHALLENGE.md` C-01 to C-20 (C-09 and C-11 already had
+      one, as findings 22 and 23). New "Triage outcomes — 2026-09-17" section: **11 held, 4 partly
+      superseded, 1 partly disproven, 1 superseded, 1 not determined**, each with a source file, test or
+      finding number as evidence, and "not determined" used where the repository does not settle it.
 - [ ] Re-run the security review against the tree being tagged
 
 **After 0.1.0**

@@ -46,8 +46,9 @@ Reladomo, which is exactly what the differential test suite exists to catch.
 
 ## Status
 
-From the closed-loop gate (`scripts/check.sh`) as of 2026-09-16 — **8 of 8 gates passing**, 689
-adapter tests, and **78 storage-path + 176 query-path** H2-vs-DynamoDB differential tests.
+From the closed-loop gate (`scripts/check.sh`) as of 2026-09-17 — **8 of 8 gates passing**, 694
+adapter tests, and **78 storage-path + 189 query-path** H2-vs-DynamoDB differential tests, with CI
+green on JDK 11 (core), 17 and 21.
 
 | Area | State |
 |---|---|
@@ -85,9 +86,8 @@ Run the demos — each is a standalone Maven project that runs against both H2 a
 cd demos/03-car-classifier/project && mvn clean test
 ```
 
-Every shell block in this README runs verbatim in CI, in the `readme` job in
-[`build.yml`](.github/workflows/build.yml). An HTML comment above each block in the Markdown source tells
-CI how to run it.
+Every shell block in this README runs verbatim in CI, in the `readme` job of
+[`build.yml`](.github/workflows/build.yml); an HTML comment above each block in the Markdown source says how.
 
 ## Install
 
@@ -110,13 +110,12 @@ your local `~/.m2`. A consumer then declares:
 | `reladynamo-test-kit` | `LocalDynamoDb` in-process harness and row-set differs, for test scope. DynamoDB Local is `provided`, so declare it yourself — [`demos/03-car-classifier/project/pom.xml`](demos/03-car-classifier/project/pom.xml) shows how. |
 | `reladynamo-spike`, `reladynamo-bench` | Internal: the original seam spike, and JMH benchmarks (`-Pbench` only). Not for consumers. |
 
-**Java.** Sources compile with `maven.compiler.release=11`, so the adapter targets Java 11 and later,
-and CI asserts every emitted class of every module is class-file major ≤ 55. Execution on a real JDK 11
-is proven in CI for `reladynamo-core`; for `reladynamo-ddb` and `reladynamo-test-kit` it is **not
-proven**, only inferred from bytecode level and API surface — `LocalDynamoDb` imports DynamoDB Local
-types that are Java 17 bytecode, so those modules cannot even be compiled by a JDK 11 compiler
-([details](docs/JAVA11-VERIFICATION.md)). **Building the adapter and running its tests needs JDK 17+**
-for that reason; the full gate needs JDK 21, for the pet-store demo. Maven 3.9+.
+**Java.** Sources compile with `maven.compiler.release=11`, and CI asserts every emitted class of every
+module is class-file major ≤ 55. Execution on a real JDK 11 is proven in CI for `reladynamo-core` only;
+for `reladynamo-ddb` and `reladynamo-test-kit` it is **not proven**, merely inferred from bytecode level,
+because `LocalDynamoDb` imports DynamoDB Local types that are Java 17 bytecode — so those modules cannot
+even be compiled by a JDK 11 compiler ([details](docs/JAVA11-VERIFICATION.md)). **Building and testing
+therefore needs JDK 17+**; the full gate needs JDK 21, for the pet-store demo. Maven 3.9+.
 
 Direct dependencies, from the POMs:
 
@@ -136,6 +135,41 @@ Direct dependencies, from the POMs:
 A `maven-enforcer` rule fails the build if DynamoDB Local, its `sqlite4java` dependency or H2 reach
 compile or runtime scope; that is what keeps the MIT claim true. The jqwik and JMH licences are taken
 from their published POMs; the rest are in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+### What is public API
+
+Nothing in the jar marks this boundary — there is no `module-info.java` and no `internal` package, and
+almost every class is `public` only because another package calls it. So the boundary is here, in prose:
+**this is the whole supported surface for 0.1.0.**
+
+**Types you are expected to touch.** Wiring, from `reladynamo-core`:
+`mapping.MithraObjectXmlParser`, `config.EntityMapping`, `plan.PhysicalDesign`, `plan.GsiSpec`,
+`plan.PlannerConfig`, `plan.QueryPlanner`, `key.DefaultKeyStrategy`, `diff.MappedRowSetDiffer`. From
+`reladynamo-ddb`: `codec.ItemCodec`, `persist.DynamoDbWriter`, `exec.QueryPlanExecutor`,
+`persist.DynamoDbPersister` (the 7-argument constructor — the 3-argument one is write-only),
+`exec.TableCreator`, and `migrate.Backfill` with `BackfillConfig`, `BackfillResult`,
+`BackfillCheckpointStore`, `FileBackfillCheckpointStore` and `WriteRateLimiter`. From
+`reladynamo-test-kit`, test scope only: `io.reladynamo.testkit.LocalDynamoDb`.
+
+**Exceptions you may catch.** `core.mapping.ReladynamoConfigException`;
+`core.plan.ReladynamoUnplannableOperationException` and its subclasses;
+`ddb.persist.DynamoDbTransactionException` and `DynamoDbCommitOutcomeUnknownException`;
+`ddb.exec.PageLimitExceededException`, `SchemaReconcileException` and `TableCreateTimeoutException`;
+`ddb.codec.CodecException` and its subclasses; `ddb.write.UnprocessedWritesException`.
+
+**Everything else is internal and may change in any 0.x release, patch releases included** —
+`core.bridge.*`, `core.temporal.*`, `core.plan.eval.*`, `core.plan.reladomo.*`, `core.key` apart from
+`DefaultKeyStrategy`, `core.mapping` apart from the parser and the config exception,
+`ddb.persist.DynamoDbTransactionCoordinator` and `PhysicalWrite`, `ddb.write.*`, and every type not
+named above. Two caveats inside the supported list: `KeyStrategy` is public but the read path never
+calls it, so `DefaultKeyStrategy` is the only supported implementation; and `ExplainPlan` /
+`ExecutionExplain` are diagnostic output with no stability promise.
+
+Two contracts bind harder than any Java signature, because breaking them strands stored data rather than
+a compile: the `v1#…` `pk`/`sk` layout with `_rd_v = 1`, and the meaning of each
+`RELADYNAMO-<AREA>-nnn` error code. Full API stability review:
+[docs/RELEASE-READINESS.md](docs/RELEASE-READINESS.md). And note that `0.1.0` on its own promises
+nothing — major version zero is initial development.
 
 ## Understanding bitemporality in 60 seconds
 
@@ -161,16 +195,11 @@ bitemporal storage exists.
 Five visual walkthroughs on the [documentation site](https://drompincen.github.io/reladynamo/), for
 readers who would rather see the mechanism than read the source:
 
-- **[The Bitemporal Seam](https://drompincen.github.io/reladynamo/bitemporal-seam.html)** —
-  where the adapter plugs into Reladomo, the two time axes, and how a row becomes a DynamoDB item.
-- **[Bitemporality in Pictures](https://drompincen.github.io/reladynamo/bitemporality-in-pictures.html)** —
-  business date against processing date on a grid, with each temporal operation drawn as a split.
-- **[Your Table on DynamoDB](https://drompincen.github.io/reladynamo/table-on-dynamodb.html)** —
-  the same object as relational rows and as DynamoDB items, key by key.
-- **[Planning a Bitemporal Query](https://drompincen.github.io/reladynamo/query-planner.html)** —
-  how an arbitrary predicate becomes key conditions, filters, in-memory residuals, or a refusal.
-- **[What You Give Up](https://drompincen.github.io/reladynamo/what-you-give-up.html)** —
-  transactions, arbitrary predicates, item size, index consistency, and the workaround for each.
+- **[The Bitemporal Seam](https://drompincen.github.io/reladynamo/bitemporal-seam.html)** — where the adapter plugs in, and how a row becomes an item.
+- **[Bitemporality in Pictures](https://drompincen.github.io/reladynamo/bitemporality-in-pictures.html)** — each temporal operation drawn as a split on a two-axis grid.
+- **[Your Table on DynamoDB](https://drompincen.github.io/reladynamo/table-on-dynamodb.html)** — the same object as relational rows and as DynamoDB items, key by key.
+- **[Planning a Bitemporal Query](https://drompincen.github.io/reladynamo/query-planner.html)** — how a predicate becomes key conditions, filters, residuals, or a refusal.
+- **[What You Give Up](https://drompincen.github.io/reladynamo/what-you-give-up.html)** — transactions, predicates, item size, index consistency, and each workaround.
 
 ## Documentation
 
@@ -235,12 +264,10 @@ MithraAbstractObjectPortal portal =
 portal.setMithraObjectReader(persister);
 ```
 
-One call binds **both** halves — `getMithraObjectPersister()` returns the same instance. Your finder
-call sites do not change.
-
-All seven arguments are needed for a persister that reads. There is a shorter three-argument
-constructor, but it builds a **write-only** persister: every read refuses by name, saying it was built
-write-only, rather than returning an empty result that would look like a working query.
+One call binds **both** halves — `getMithraObjectPersister()` returns the same instance — and your finder
+call sites do not change. All seven arguments are needed for a persister that reads: the shorter
+three-argument constructor builds a **write-only** one, whose every read refuses by name rather than
+returning an empty result that would look like a working query.
 
 ## How data is stored
 
@@ -328,17 +355,15 @@ Reladomo resolves each relationship through that entity's own portal.
 
 ## Operations
 
-**None of this has been measured against real DynamoDB.** Each figure below is either one of DynamoDB's
-billing rules or an estimate the planner computes, so treat this section as a method rather than data.
-Per-row CPU is not where the cost is ([performance](docs/PERFORMANCE.md)): request count and items
-examined are.
+**None of this has been measured against real DynamoDB.** Every figure below is either a DynamoDB billing
+rule or an estimate the planner computes, so read this as a method, not as data. Per-row CPU is not where
+the cost is ([performance](docs/PERFORMANCE.md)): request count and items examined are.
 
 ### Capacity planning
 
-- **Start on-demand.** `TableCreator` creates `PAY_PER_REQUEST` tables by default. With
-  `TableCreator.Options.builder().billingMode(BillingMode.PROVISIONED).readCapacityUnits(r).writeCapacityUnits(w)`
-  it gives every GSI the **same**
-  RCU/WCU as its table. That is a placeholder, not a plan: size each index from its own traffic.
+- **Start on-demand.** `TableCreator` creates `PAY_PER_REQUEST` tables by default. Switched to
+  `PROVISIONED` via `TableCreator.Options`, it gives every GSI the **same** RCU/WCU as its table — a
+  placeholder, not a plan: size each index from its own traffic.
 - **One table per object.** The CRM demo has 46 tables. Check your account's per-Region table quota and the per-table GSI quota before you deploy.
 - **Reads pay for history.** Without a current-row index, a bitemporal as-of read queries the object's
   whole partition and filters it (see the plan below), so cost grows with the number of stored versions.
@@ -356,9 +381,9 @@ in 4 KB blocks, at half price when eventually consistent.
 estimatedRcu = ceil(estimatedItemsExamined × avgItemBytes / 4096) × (consistentRead ? 1 : 0.5)
 ```
 
-Its inputs come from `PlannerConfig.builder().estimatedVersionsPerKey(n).avgItemBytes(n)`, which default
-to 16 and 1024. Set them from your data, or the estimate means nothing. It exists to compare access paths
-at plan time. It is not a bill: it has no prices and does not model a GSI's projected size.
+Its inputs come from `PlannerConfig.builder().estimatedVersionsPerKey(n).avgItemBytes(n)`, defaulting to
+16 and 1024 — set them from your data or the estimate means nothing. It compares access paths at plan
+time; it is not a bill, having no prices and no model of a GSI's projected size.
 
 The guards that bound cost fail by name instead of degrading silently:
 
@@ -371,13 +396,12 @@ The guards that bound cost fail by name instead of degrading silently:
 
 ### Monitoring
 
-**Reladynamo has no metrics hook and emits no logs.** The adapter has no listener, metrics or logging API
-(`slf4j-api` is declared but never called), and it does not record consumed **write** capacity. Production
-metrics come from DynamoDB itself, through CloudWatch's per-table and per-GSI consumed capacity, throttling
-and latency, and from whatever you configure on the `DynamoDbClient` you pass in. The adapter's own
-signal is the read explain data below. For each access path, watch items examined against items returned
-(a wide gap is a filter doing a key's job), requests per finder call (fan-out), `PLAN-00x` refusals, and GSI
-throttling, which back-pressures writes to the base table.
+**Reladynamo has no metrics hook and emits no logs** — no listener, no metrics API, `slf4j-api` declared
+but never called, and no record of consumed **write** capacity. Production metrics come from CloudWatch
+(per-table and per-GSI consumed capacity, throttling, latency) and from whatever you configure on the
+`DynamoDbClient` you pass in. The adapter's own signal is the read explain data below: per access path,
+watch items examined against items returned (a wide gap is a filter doing a key's job), requests per
+finder call, `PLAN-00x` refusals, and GSI throttling, which back-pressures writes to the base table.
 
 ### Explain plan
 
