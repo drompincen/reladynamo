@@ -17,7 +17,7 @@
     <Attribute name="label" javaType="String" columnName="LABEL" maxLength="64" nullable="false"/>
     <!-- inPlaceUpdate is not a method on the generated dated object; Reladomo selects
          TemporalDirector.inPlaceUpdate when this flag is set on an attribute. -->
-    <Attribute name="note" javaType="String" columnName="NOTE" maxLength="64" nullable="true" inPlaceUpdate="true"/>
+    <Attribute name="note" javaType="String" columnName="NOTE" maxLength="32768" nullable="true" inPlaceUpdate="true"/>
 
     <Relationship name="entries" relatedObject="DiffEntry" cardinality="one-to-many"
                   reverseRelationshipName="balance">
