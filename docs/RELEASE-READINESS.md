@@ -18,7 +18,7 @@ source and the reports, not copied from other documents. The build was not re-ru
 | | Value | Source |
 |---|---|---|
 | Closed-loop gate | **8 of 8 pass**, 0 fail, 0 pending | `check-latest.json`, iteration 128 |
-| Adapter tests: gate figure | **694**. This is a **floor**, not the total. | `adapter-build` gate. It adds up the surefire XML `tests` attributes, which undercount jqwik property classes. The caveat is recorded in `scripts/check.sh.txt`. |
+| Adapter tests: gate figure | **694**. This is a **floor**, not the total. | `adapter-build` gate. It adds up the surefire XML `tests` attributes, which undercount jqwik property classes. The caveat is recorded in `scripts/check.sh` (`script-instructions/gate-scripts.md`). |
 | Adapter tests: reactor total | **689**: core 202, test-kit 15, ddb 469, spike 3. **Stale** — the reactor has not been re-run since, and the gate floor has passed it. | Maven reactor summary recorded 2026-09-15 15:40 MT in `docs/INSPECTION-TRACKING.md` and quoted in `README.md`. Not re-run for this document. |
 | Differential tests (`io.reladynamo.ddb.differential.*Test`) | **267**: 78 storage-path, 189 query-path | `check-latest.json`. The split goes by class name, and neither half is exact. See `docs/COVERAGE-GAPS.md` §3. |
 | Demo tests | **48**: CRM 18, pet store 17, classifier 13 | `check-latest.json`, using the same surefire-XML counting |

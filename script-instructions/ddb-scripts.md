@@ -1,3 +1,13 @@
+# DynamoDB scripts
+
+DynamoDB table introspection.
+
+Each `## <path>` section below is one script. `java scripts/GenerateScripts.java` writes it to that
+path (relative to the repository root) with LF line endings; the generated file is gitignored.
+
+## scripts/ddb-introspect.sh
+
+````bash
 #!/bin/bash
 # drom-flow — read an EXISTING DynamoDB estate into the model the amazon-dynamodb skill consumes.
 #
@@ -251,3 +261,4 @@ if [[ $rc -eq 0 ]] && ! $AS_JSON; then
   log "  python3 \"\$DDB_SKILL_DIR/scripts/calculate_costs.py\" --model $OUT --output cost_report.md"
 fi
 exit $rc
+````

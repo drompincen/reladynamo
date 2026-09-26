@@ -8,7 +8,7 @@ this document is out of date, and both are worth knowing.
 - `reports/check-126.json`
 - `DynamoDbPersister.java`
 - the test sources under `reladynamo-ddb/src/test/java/io/reladynamo/ddb/differential/` and the demos
-- `scripts/check.sh.txt`
+- `scripts/check.sh` (source: `script-instructions/gate-scripts.md`)
 
 A number in parentheses after a test class is the count of `@Test` / `@ParameterizedTest` methods
 declared in its source. It is **not** a run count: parameterized classes run more cases than they
@@ -79,7 +79,7 @@ has never started against it.
 The gate's last run reports **78 storage-path and 176 query-path** tests (254 in all) in
 `io.reladynamo.ddb.differential`.
 
-**How the gate splits them.** `scripts/check.sh.txt` sums surefire XML per class. A class counts as
+**How the gate splits them.** `scripts/check.sh` sums surefire XML per class. A class counts as
 query-path if its file name contains one of `FinderDriven`, `FinderMatrix`, `Acceptance`,
 `BoundWritePath`, `NullPredicateDynamoDb`, `GetItemFilterFinder`, `PaginationSafeguardFinder`,
 `RelationshipDifferential` or `RefreshTest`. Every other class counts as storage-path.

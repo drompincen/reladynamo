@@ -1,3 +1,13 @@
+# Gate scripts
+
+The closed-loop gate (`check.sh`, run by CI), its spec-drift check, and the orchestration template.
+
+Each `## <path>` section below is one script. `java scripts/GenerateScripts.java` writes it to that
+path (relative to the repository root) with LF line endings; the generated file is gitignored.
+
+## scripts/check.sh
+
+````bash
 #!/bin/bash
 # Reladynamo closed-loop check. Idempotent; safe to re-run from any iteration.
 #
@@ -218,3 +228,206 @@ printf -- '-- iteration %s: %d pass / %d fail / %d pending -> %s\n' \
   "$ITER" "$pass" "$fail" "$pend" "$OUT"
 
 [ "$fail" -eq 0 ] && [ "$pend" -eq 0 ]
+````
+
+## scripts/spec-drift.sh
+
+````bash
+#!/bin/bash
+# Compares the design documents against the code they describe.
+#
+# Findings 16, 17 and 18 were all the same shape: a design document described behaviour that did not
+# exist, and was read as though it did. One was a documented DoS mitigation, three were tuning knobs,
+# and one was a multi-tenancy data-isolation guard. Each was found by hand. This finds them for free.
+#
+# Exit 0 = every documented error code exists in code and every config getter has a consumer.
+set -uo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT" || exit 2
+
+python3 - <<'PY'
+import glob, re, sys
+
+problems = []
+
+# 1. Every RELADYNAMO-xxx-nnn code named in a design doc must exist in main sources — or be listed
+#    in the waiver below with a reason. A code in the spec and not in the code is a promise nobody
+#    kept.
+WAIVED = {
+    "RELADYNAMO-PLAN-003": "join fan-out limit not implemented; joinFanOutLimit refuses non-defaults (finding 17)",
+    "RELADYNAMO-PLAN-006": "page-exhaustion diagnostic not implemented; maxPages throws instead (finding 16)",
+    "RELADYNAMO-PLAN-007": "in-memory ceilings partially implemented; byte ceiling refuses non-defaults (finding 17)",
+    "RELADYNAMO-PLAN-004": "sourceAttribute is refused outright at parse time instead (finding 18, CFG-012)",
+}
+in_code = set()
+for f in glob.glob('reladynamo-*/src/main/java/**/*.java', recursive=True):
+    in_code |= set(re.findall(r'RELADYNAMO-[A-Z]+-\d+', open(f, encoding='utf-8').read()))
+in_docs = set()
+for f in glob.glob('docs/design/*.md'):
+    in_docs |= set(re.findall(r'RELADYNAMO-[A-Z]+-\d+', open(f, encoding='utf-8').read()))
+missing = sorted(c for c in in_docs - in_code if c not in WAIVED)
+for c in missing:
+    problems.append(f"documented but not implemented, and not waived: {c}")
+
+# 2. Every public getter on a config object must have a consumer somewhere in main sources, or
+#    refuse non-default values. A knob nothing reads is worse than a missing one: it reads as a
+#    guarantee.
+for cfg in ['reladynamo-core/src/main/java/io/reladynamo/core/plan/PlannerConfig.java']:
+    src = open(cfg, encoding='utf-8').read()
+    getters = set(re.findall(r'public (?:int|boolean|long|String|Integer) (\w+)\(\) \{', src))
+    others = {f: open(f, encoding='utf-8').read()
+              for f in glob.glob('reladynamo-*/src/main/java/**/*.java', recursive=True)
+              if not f.endswith('PlannerConfig.java')}
+    # A same-named getter declared on a *different* class used to satisfy this check by its own
+    # declaration alone. That is how R-09 hid in plain sight: PlannerConfig.maxPages() looked
+    # consumed because QueryPlan.java declares its own maxPages(), while QueryPlanner never copied
+    # the configured value into the plan. Every real finder plan was therefore unbounded, and the
+    # gate said the knob was wired. So: strip declaration sites, and require an actual receiver.
+    DECL = re.compile(r'public\s+(?:static\s+)?[\w<>\[\], .]+\s+\w+\s*\([^)]*\)\s*\{')
+    calls = {f: DECL.sub(' ', b) for f, b in others.items()}
+    for g in sorted(getters):
+        # `something.maxPages()` — a call through a receiver, not a declaration of the same name.
+        consumed = any(re.search(r'\.\s*' + g + r'\s*\(\)', b) for b in calls.values())
+        guarded = re.search(r'public Builder ' + g + r'\(int v\) \{\s*if \(v != ', src) is not None
+        if not consumed and not guarded:
+            problems.append(f"config option with no consumer and no guard: {g}")
+            continue
+        # Second-order check: a config value that exists as a same-named field on QueryPlan must
+        # actually be copied there by the planner. Being read somewhere is not being wired.
+        plan_f = 'reladynamo-core/src/main/java/io/reladynamo/core/plan/QueryPlan.java'
+        planner_f = 'reladynamo-core/src/main/java/io/reladynamo/core/plan/QueryPlanner.java'
+        if plan_f in others and planner_f in others:
+            if re.search(r'\bprivate final [\w<>\[\]]+ ' + g + r'\s*;', others[plan_f]):
+                if not re.search(r'\b' + g + r'\b', others[planner_f]):
+                    problems.append(
+                        f"config option reaches QueryPlan.{g} but QueryPlanner never populates it: {g}")
+
+if problems:
+    print("spec-drift: %d problem(s)" % len(problems))
+    for p in problems:
+        print("  -", p)
+    sys.exit(1)
+print("spec-drift: documented codes implemented or waived; every config option consumed or guarded")
+PY
+````
+
+## scripts/orchestrate.sh
+
+````bash
+#!/bin/bash
+# drom-flow orchestration script template
+# Copy and customize this for your project's pipeline.
+#
+# Usage:
+#   ./scripts/orchestrate.sh [--iteration N] [--max N] [--check-only]
+#
+# Output:
+#   Writes JSON report to ./reports/iteration-N.json
+#   Exit 0 = all pass, Exit 1 = issues remain, Exit 2 = error
+
+set -euo pipefail
+
+# --- Configuration (customize these) ---
+CHECK_CMD="echo 'Override CHECK_CMD with your test/check command'"
+REPORT_DIR="./reports"
+MAX_ITERATIONS=10
+# ----------------------------------------
+
+# Parse arguments
+ITERATION=1
+CHECK_ONLY=false
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --iteration) ITERATION="$2"; shift 2 ;;
+    --max) MAX_ITERATIONS="$2"; shift 2 ;;
+    --check-only) CHECK_ONLY=true; shift ;;
+    *) echo "Unknown arg: $1"; exit 2 ;;
+  esac
+done
+
+mkdir -p "$REPORT_DIR"
+
+run_check() {
+  local iter=$1
+  local report="$REPORT_DIR/iteration-${iter}.json"
+  local start_time=$(date +%s)
+
+  echo "[orchestrate] Iteration $iter — running check..."
+
+  # Run the check command, capture output
+  local exit_code=0
+  local output
+  output=$(eval "$CHECK_CMD" 2>&1) || exit_code=$?
+
+  local end_time=$(date +%s)
+  local duration=$((end_time - start_time))
+
+  # Write report
+  cat > "$report" <<EOF
+{
+  "iteration": $iter,
+  "timestamp": "$(date -Iseconds)",
+  "durationSeconds": $duration,
+  "exitCode": $exit_code,
+  "output": $(echo "$output" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))' 2>/dev/null || echo "\"$output\"")
+}
+EOF
+
+  echo "[orchestrate] Report written to $report (exit code: $exit_code, ${duration}s)"
+  return $exit_code
+}
+
+compare_iterations() {
+  local prev="$REPORT_DIR/iteration-$(($1 - 1)).json"
+  local curr="$REPORT_DIR/iteration-$1.json"
+
+  if [ ! -f "$prev" ]; then
+    echo "[orchestrate] No previous iteration to compare"
+    return 0
+  fi
+
+  local prev_exit=$(python3 -c "import json; print(json.load(open('$prev'))['exitCode'])" 2>/dev/null || echo "1")
+  local curr_exit=$(python3 -c "import json; print(json.load(open('$curr'))['exitCode'])" 2>/dev/null || echo "1")
+
+  echo "[orchestrate] Previous exit: $prev_exit → Current exit: $curr_exit"
+
+  if [ "$curr_exit" -gt "$prev_exit" ]; then
+    echo "[orchestrate] WARNING: Possible regression detected"
+    return 1
+  fi
+  return 0
+}
+
+# --- Main ---
+
+if [ "$CHECK_ONLY" = true ]; then
+  run_check "$ITERATION"
+  exit $?
+fi
+
+echo "[orchestrate] Starting closed loop: iteration $ITERATION, max $MAX_ITERATIONS"
+
+while [ "$ITERATION" -le "$MAX_ITERATIONS" ]; do
+  if run_check "$ITERATION"; then
+    echo "[orchestrate] ALL CHECKS PASSED at iteration $ITERATION"
+    exit 0
+  fi
+
+  if [ "$ITERATION" -gt 1 ]; then
+    if ! compare_iterations "$ITERATION"; then
+      echo "[orchestrate] Regression at iteration $ITERATION — stopping for review"
+      exit 1
+    fi
+  fi
+
+  echo "[orchestrate] Issues remain. Report: $REPORT_DIR/iteration-${ITERATION}.json"
+  echo "[orchestrate] Waiting for fixes before next iteration..."
+  # Script exits here — Claude reads the report, spawns fix agents,
+  # then re-runs: ./scripts/orchestrate.sh --iteration $((ITERATION+1))
+  exit 1
+
+done
+
+echo "[orchestrate] Max iterations ($MAX_ITERATIONS) reached"
+exit 1
+````

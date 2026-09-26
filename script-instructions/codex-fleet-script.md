@@ -1,3 +1,13 @@
+# Codex fleet script
+
+Fans out parallel codex CLI sub-agents.
+
+Each `## <path>` section below is one script. `java scripts/GenerateScripts.java` writes it to that
+path (relative to the repository root) with LF line endings; the generated file is gitignored.
+
+## scripts/codex-fleet.sh
+
+````bash
 #!/bin/bash
 # drom-flow — codex sub-agent fleet: filesystem-controlled fan-out to the codex CLI.
 #
@@ -458,3 +468,4 @@ case "$SUB" in
   clean)   cmd_clean "$@" ;;
   *) die "unknown subcommand: $SUB" ;;
 esac
+````

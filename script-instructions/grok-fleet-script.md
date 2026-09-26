@@ -1,3 +1,13 @@
+# Grok fleet script
+
+Fans out parallel grok CLI sub-agents. See `.claude/skills/grok-fleet/grok-fleet.md`.
+
+Each `## <path>` section below is one script. `java scripts/GenerateScripts.java` writes it to that
+path (relative to the repository root) with LF line endings; the generated file is gitignored.
+
+## scripts/grok-fleet.sh
+
+````bash
 #!/bin/bash
 # drom-flow — grok sub-agent fleet: filesystem-controlled fan-out from WSL to grok CLI (Windows).
 #
@@ -458,3 +468,4 @@ case "$SUB" in
   resume)     source "$REPO_ROOT/scripts/grok-resume.sh"; cmd_resume "$@" ;;
   *) die "unknown subcommand: $SUB" ;;
 esac
+````

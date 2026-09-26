@@ -18,8 +18,8 @@ setup-backup/
 reports/*
 !reports/.gitkeep
 dependency-reduced-pom.xml
-# No executable scripts in git. Scripts are tracked as *.sh.txt and generated locally with
-# `java scripts/GenerateScripts.java` (see start-here.md); the generated files are build output.
+# No scripts in git. They live as code blocks in script-instructions/*.md and are generated locally
+# with `java scripts/GenerateScripts.java` (see start-here.md); the generated files are build output.
 *.sh
 *.bat
 *.cmd

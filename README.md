@@ -11,7 +11,7 @@ Java 11+ · Reladomo 18.1.0 · AWS SDK for Java 2.x
 **Documentation site: <https://drompincen.github.io/reladynamo/>**
 
 > **New here?** See [start-here.md](start-here.md). The repository ships no executable scripts —
-> they are stored as `*.sh.txt` and generated with `java scripts/GenerateScripts.java`.
+> they live as code blocks in `script-instructions/*.md` and are generated with `java scripts/GenerateScripts.java`.
 
 Point an existing [Reladomo](https://github.com/goldmansachs/reladomo) object model at DynamoDB
 without changing your object model XML, your generated classes, or a single finder call site. Only
@@ -484,7 +484,7 @@ from a misconfigured query.
 
 <!-- ci:run -->
 ```bash
-java scripts/GenerateScripts.java   # generate scripts from their *.sh.txt sources
+java scripts/GenerateScripts.java   # generate scripts from script-instructions/*.md
 mvn clean install                   # all modules
 bash scripts/check.sh               # the full gate, including the H2-vs-DynamoDB differential suite
 ```
