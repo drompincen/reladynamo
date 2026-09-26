@@ -64,8 +64,13 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Generate scripts from their .txt sources
+      - name: Generate scripts from script-instructions/*.md
         run: java scripts/GenerateScripts.java
+      # The demo gates resolve the adapter SNAPSHOT from ~/.m2, and check.sh only runs `mvn test`.
+      # Without this the gate passed only while a restored Maven cache happened to hold a SNAPSHOT
+      # installed by a demo job; once the cache was evicted, all three demos failed to resolve it.
+      - name: Install the adapter
+        run: mvn -B -q clean install -DskipTests
       - name: Run scripts/check.sh
         run: bash scripts/check.sh --iteration ci
       - name: Publish gate report
